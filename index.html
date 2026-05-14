@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blind-Ranking</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,18 +26,35 @@
   .desc { font-size:13px; color:var(--text2); margin-bottom:1.75rem; line-height:1.6; padding-left:32px; }
   label { font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.09em; color:var(--text3); display:block; margin-bottom:7px; }
   .field { margin-bottom:1.5rem; }
-  input[type="text"] { width:100%; padding:10px 14px; background:var(--surface2); border:1px solid rgba(255,255,255,0.07); border-radius:var(--radius); color:var(--text); font-size:14px; font-family:'Inter',sans-serif; outline:none; transition:border-color .15s,box-shadow .15s; }
+  
+  input[type="text"] { 
+    width: 100%; height: 42px; padding: 0 14px; 
+    background: var(--surface2); 
+    border: 1px solid rgba(255,255,255,0.07); 
+    border-radius: var(--radius); 
+    color: var(--text); font-size: 14px; font-family:'Inter',sans-serif; 
+    outline: none; transition: border-color .15s, box-shadow .15s; 
+  }
   input::placeholder { color:var(--text3); }
   input:focus { border-color:var(--gold-border); box-shadow:0 0 0 3px rgba(212,168,67,0.1); }
-  button { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:var(--radius); border:1px solid rgba(255,255,255,0.1); background:transparent; color:var(--text2); font-size:13px; font-family:'Inter',sans-serif; font-weight:500; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
+  
+  button { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:9px 18px; border-radius:var(--radius); border:1px solid rgba(255,255,255,0.1); background:transparent; color:var(--text2); font-size:13px; font-family:'Inter',sans-serif; font-weight:500; cursor:pointer; transition:background .15s,border-color .15s,color .15s; }
   button:hover:not(:disabled) { background:var(--surface2); color:var(--text); border-color:rgba(255,255,255,0.15); }
   button:disabled { opacity:0.3; cursor:default; }
-  .btn-primary { background:var(--gold)!important; color:#0c0e14!important; border-color:var(--gold)!important; font-weight:700!important; font-size:14px!important; padding:12px 28px!important; }
+  
+  .btn-primary { background:var(--gold)!important; color:#0c0e14!important; border-color:var(--gold)!important; font-weight:600!important; font-size:14px!important; padding:12px 24px!important; }
   .btn-primary:hover:not(:disabled) { background:var(--gold-hi)!important; border-color:var(--gold-hi)!important; }
   .btn-sm { font-size:12px; padding:6px 12px; }
+  
   .divider { margin:1.5rem 0; border:none; border-top:1px solid rgba(255,255,255,0.06); }
   .back-btn { font-size:12px; color:var(--text3); margin-bottom:1.25rem; display:inline-flex; align-items:center; gap:5px; cursor:pointer; background:none; border:none; padding:0; }
   .back-btn:hover { color:var(--text2); }
+
+  /* lang bar */
+  .lang-bar { display:flex; gap:8px; justify-content:flex-end; margin-bottom:15px; }
+  .lb { padding:5px 12px; font-size:11px; font-weight:600; font-family:'Inter',sans-serif; color:var(--text3); border:1px solid rgba(255,255,255,0.1); border-radius:6px; background:transparent; cursor:pointer; transition:0.15s; letter-spacing:0.05em; }
+  .lb:hover { color:var(--text2); border-color:rgba(255,255,255,0.2); }
+  .lb.active { color:var(--gold); border-color:var(--gold-border); background:var(--gold-bg); }
 
   /* home */
   .mode-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:1.75rem; }
@@ -48,8 +65,11 @@
   .mode-desc { font-size:12px; color:var(--text3); line-height:1.5; }
 
   /* items/slots */
-  .item-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
-  .num { font-family:'Oswald',sans-serif; font-size:13px; font-weight:600; color:var(--gold-dim); width:22px; text-align:right; flex-shrink:0; }
+  .item-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .num { font-family:'Oswald',sans-serif; font-size:15px; font-weight:700; color:var(--gold); width:20px; text-align:center; flex-shrink:0; }
+  .rm-btn { width:42px; height:42px; flex-shrink:0; background:var(--surface2); border:1px solid rgba(255,255,255,0.07); border-radius:var(--radius); color:var(--text3); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:0.15s; padding:0; }
+  .rm-btn:hover { background:rgba(255,255,255,0.05); color:var(--text2); }
+  
   .slots-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:1.5rem; }
   .slot { aspect-ratio:1; border:2px dashed rgba(255,255,255,0.12); border-radius:var(--radius); background:var(--surface2); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; position:relative; overflow:hidden; transition:border-color .15s,background .15s; }
   .slot:hover,.slot.drag-over { border-color:var(--gold-border); background:var(--gold-bg); }
@@ -60,7 +80,7 @@
   .slot .remove-btn { position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%; background:rgba(0,0,0,0.75); color:#fff; font-size:11px; border:none; padding:0; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background .12s; }
   .slot .remove-btn:hover { background:rgba(180,40,40,0.9); }
   .slot .label-overlay { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent,rgba(0,0,0,0.78)); padding:14px 4px 4px; }
-  .slot .label-input { width:100%; background:transparent; border:none; color:#fff; font-size:10px; font-family:'Inter',sans-serif; text-align:center; outline:none; padding:0 2px; }
+  .slot .label-input { width:100%; height:auto; background:transparent; border:none; color:#fff; font-size:10px; font-family:'Inter',sans-serif; text-align:center; outline:none; padding:0 2px; }
   .slot .label-input::placeholder { color:rgba(255,255,255,0.4); }
 
   /* link boxes */
@@ -69,16 +89,16 @@
   .link-section:last-child { margin-bottom:0; }
   .link-section .lbl { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--gold-dim); margin-bottom:6px; }
   .url-row { display:flex; gap:8px; align-items:center; }
-  .url-display { flex:1; padding:8px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius); font-size:13px; color:var(--text2); background:var(--surface); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; user-select:all; cursor:pointer; transition: border-color .15s; }
-  .url-display:hover { border-color:var(--gold-border); }
-  .copy-btn { font-size:13px; padding:8px 14px; white-space:nowrap; flex-shrink:0; font-weight:600; background:var(--gold)!important; color:#0c0e14!important; border-color:var(--gold)!important; border-radius:var(--radius); cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:background .12s; }
+  .url-display { flex:1; padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius); font-size:13px; color:var(--text2); background:var(--surface); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; user-select:all; cursor:pointer; transition:border-color .15s; }
+  .url-display:hover { border-color:var(--gold-border); color:var(--text); }
+  .copy-btn { font-size:13px; padding:10px 14px; white-space:nowrap; flex-shrink:0; font-weight:600; background:var(--gold)!important; color:#0c0e14!important; border-color:var(--gold)!important; border-radius:var(--radius); cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:background .12s; }
   .copy-btn:hover { background:var(--gold-hi)!important; }
   .copy-btn.copied { background:#1a3a20!important; border-color:#2d6e3a!important; color:#5ecf7a!important; }
   .sep { height:1px; background:rgba(255,255,255,0.08); margin:1rem 0; }
   .err-box { margin-top:1rem; background:rgba(160,40,40,0.15); border:1px solid rgba(160,40,40,0.35); border-radius:var(--radius); padding:.75rem 1rem; font-size:13px; color:#e07070; display:none; }
 
   /* spinner */
-  .spinner { display:inline-block; width:13px; height:13px; border:2px solid rgba(12,14,20,0.3); border-top-color:#0c0e14; border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
+  .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(12,14,20,0.3); border-top-color:#0c0e14; border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
   .spinner-light { border-color:rgba(255,255,255,0.15); border-top-color:var(--text2); }
   @keyframes spin { to { transform:rotate(360deg); } }
   .loading-screen { text-align:center; padding:3rem 1rem; }
@@ -159,18 +179,13 @@
   .stat-box { flex:1; background:var(--surface2); border-radius:var(--radius); padding:.75rem; text-align:center; }
   .stat-num { font-family:'Oswald',sans-serif; font-size:24px; font-weight:700; color:var(--gold); }
   .stat-lbl { font-size:11px; color:var(--text3); margin-top:2px; }
-
-  /* lang bar */
-  .lang-bar { display:flex; gap:6px; justify-content:flex-end; margin-bottom:10px; }
-  .lb { padding:4px 10px; font-size:16px; border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius); background:var(--surface2); cursor:pointer; transition:border-color .15s,background .15s; line-height:1; }
-  .lb:hover, .lb.active { border-color:var(--gold-border); background:var(--gold-bg); }
 </style>
 </head>
 <body>
 <div class="stage">
   <div class="lang-bar" id="lang-bar">
-    <button class="lb" id="lb-de">🇩🇪</button>
-    <button class="lb" id="lb-en">🇬🇧</button>
+    <button class="lb" id="lb-de">DE</button>
+    <button class="lb" id="lb-en">GB</button>
   </div>
   <div class="card" id="app"></div>
 </div>
@@ -196,12 +211,12 @@ const T = {
     textTitle:'Text', textDesc:'Begriffe oder Aussagen',
     imgTitle:'Bilder', imgDesc:'Fotos per Drag & Drop',
     countDesc:'Wie viele Items?', count5Desc:'Kompakt & schnell', count10Desc:'Umfangreicher',
-    textCreatorTitle:'Text-Ranking Creator', textCreatorDesc:'Begriffe eingeben → Blind ranken → Links teilen.',
-    titleLabel:'Titel / Fragestellung', titlePlaceholder:'z. B. Lieblingspizzabeläge …',
-    itemsLabel:'Items', addItem:'+ Item hinzufügen', createLinks:'🔗 Links erstellen',
+    textCreatorTitle:'Text-Ranking Creator', textCreatorDesc:'Items eingeben → KI schreibt Intro → Links teilen.',
+    titleLabel:'Titel / Fragestellung', titlePlaceholder:'z. B. Lieblingspizzabeläge ...',
+    itemsLabel:'Items', addItem:'+ Item hinzufügen', createLinks:'Links erstellen',
     playLinkLabel:'🎮 Spiel-Link – an Mitspieler schicken', groupLinkLabel:'👥 Gruppen-Ergebnis – für dich zum Auswerten',
     imgCreatorTitle:'Bild-Ranking Creator', imgCreatorDesc:'Bilder per Drag & Drop → Beschriftung → Links teilen.',
-    imgTitlePlaceholder:'z. B. Schönste Reiseziele …', imagesLabel:'Bilder', imgSlotLabel:'Bild', imgLabelPlaceholder:'Beschriftung …',
+    imgTitlePlaceholder:'z. B. Schönste Reiseziele ...', imagesLabel:'Bilder', imgSlotLabel:'Bild', imgLabelPlaceholder:'Beschriftung ...',
     blindRanking:'Blind-Ranking', items:'Items', images:'Bilder', startBtn:'Jetzt starten →',
     currentItem:'Aktuelles Item', lastItem:'Letztes Item',
     moreItems:(n)=>n===1?'Noch 1 weiteres Item unbekannt':`Noch ${n} weitere Items unbekannt`,
@@ -227,12 +242,12 @@ const T = {
     textTitle:'Text', textDesc:'Words or statements',
     imgTitle:'Images', imgDesc:'Photos via drag & drop',
     countDesc:'How many items?', count5Desc:'Compact & quick', count10Desc:'More comprehensive',
-    textCreatorTitle:'Text Ranking Creator', textCreatorDesc:'Enter terms → Blind rank → Share links.',
-    titleLabel:'Title / Question', titlePlaceholder:'e.g. Favourite pizza toppings …',
-    itemsLabel:'Items', addItem:'+ Add item', createLinks:'🔗 Create links',
+    textCreatorTitle:'Text Ranking Creator', textCreatorDesc:'Enter items → AI writes intro → Share links.',
+    titleLabel:'Title / Question', titlePlaceholder:'e.g. Favourite pizza toppings ...',
+    itemsLabel:'Items', addItem:'+ Add item', createLinks:'Create links',
     playLinkLabel:'🎮 Play link – send to players', groupLinkLabel:'👥 Group results – for you to review',
     imgCreatorTitle:'Image Ranking Creator', imgCreatorDesc:'Images via drag & drop → Add labels → Share links.',
-    imgTitlePlaceholder:'e.g. Most beautiful travel destinations …', imagesLabel:'Images', imgSlotLabel:'Image', imgLabelPlaceholder:'Label …',
+    imgTitlePlaceholder:'e.g. Most beautiful travel destinations ...', imagesLabel:'Images', imgSlotLabel:'Image', imgLabelPlaceholder:'Label ...',
     blindRanking:'Blind Ranking', items:'Items', images:'Images', startBtn:'Start now →',
     currentItem:'Current item', lastItem:'Last item',
     moreItems:(n)=>n===1?'1 more item to come':`${n} more items to come`,
@@ -257,7 +272,6 @@ function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
 function fmtDate(ts){return new Date(ts).toLocaleDateString(t('dateLocale'),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 
-// Bild verkleinern bevor es zu Supabase geht
 function compressImage(file, maxBytes=150000){
   return new Promise(resolve=>{
     const img=new Image();
@@ -291,44 +305,41 @@ function dataURLtoBlob(dataurl) {
 function copyBtn(el,text){
   el.onclick=async()=>{
     let ok=false;
-    // Versuch 1: Moderne Clipboard API (funktioniert meist nur auf HTTPS)
     if(navigator.clipboard && window.isSecureContext) {
       try{ await navigator.clipboard.writeText(text); ok=true; }catch(e){}
     }
-    // Versuch 2: Zuverlässiger Fallback für lokales Testen (file://)
     if(!ok){
       try{
         const ta = document.createElement('textarea');
         ta.value = text;
-        ta.style.position = 'fixed'; // Unsichtbar machen
-        ta.style.opacity = '0';
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
         document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
+        ta.select(); document.execCommand('copy');
         document.body.removeChild(ta);
       }catch(e2){}
     }
-    el.textContent=t('copied');el.classList.add('copied');
-    setTimeout(()=>{el.textContent=t('copy');el.classList.remove('copied');},2500);
+    const origHtml = el.innerHTML;
+    el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> ${t('copied')}`;
+    el.classList.add('copied');
+    setTimeout(()=>{el.innerHTML=origHtml;el.classList.remove('copied');},2500);
   };
 }
 
-// Link-Section generieren & Klick-Events binden
+// Link-Section generieren & Klick auf Feld zum Kopieren
 function linkSection(lbl,url,extra){
   const id='ls'+Math.random().toString(36).slice(2);
   setTimeout(()=>{
     const btn=document.getElementById(id);
     if(btn){
       copyBtn(btn,url);
-      // Klick auf das Textfeld kopiert ebenfalls!
       const disp=btn.previousElementSibling;
       if(disp){
-        disp.title='Klicken zum Kopieren';
+        disp.title=t('copy');
         disp.onclick=()=>btn.click();
       }
     }
   },50);
-  return`<div class="link-section">${extra||''}<div class="lbl">${lbl}</div><div class="url-row"><div class="url-display">${esc(url)}</div><button class="copy-btn" id="${id}">${t('copy')}</button></div></div>`;
+  return `<div class="link-section">${extra||''}<div class="lbl">${lbl}</div><div class="url-row"><div class="url-display">${esc(url)}</div><button class="copy-btn" id="${id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> <span>${t('copy')}</span></button></div></div>`;
 }
 
 // ── ROUTING & LANG ────────────────────────────────────────────────────
@@ -392,6 +403,9 @@ function initTextCreator(maxItems=5){
   pageRerender=()=>initTextCreator(maxItems);
   const app=document.getElementById('app');
   const items=Array(maxItems).fill('');
+  
+  const linkIconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
+
   app.innerHTML=`
     <button class="back-btn" id="back">${t('back')}</button>
     <div class="brand"><span class="crown">🏆</span><h1>${t('textCreatorTitle')}</h1></div>
@@ -403,23 +417,25 @@ function initTextCreator(maxItems=5){
       <button class="btn-sm" id="add-btn" style="margin-top:8px;">${t('addItem')}</button>
     </div>
     <hr class="divider">
-    <button class="btn-primary" id="gen-btn" disabled>${t('createLinks')}</button>
+    <button class="btn-primary" id="gen-btn" disabled>${linkIconSvg} <span>${t('createLinks')}</span></button>
     <div class="err-box" id="err-box"></div>
     <div class="link-box" id="link-box"></div>`;
+  
   document.getElementById('back').onclick=()=>chooseCount('text');
 
   function renderItems(){
     const list=document.getElementById('items-list');list.innerHTML='';
     items.forEach((val,i)=>{
       const row=document.createElement('div');row.className='item-row';
-      row.innerHTML=`<span class="num">${i+1}</span><input type="text" placeholder="${t('itemsLabel')} ${i+1}" value="${esc(val)}" data-idx="${i}" class="iinp">${items.length>2?`<button data-idx="${i}" class="rm btn-sm" style="opacity:.35;padding:6px 10px">✕</button>`:''}`;
+      row.innerHTML=`<span class="num">${i+1}</span><input type="text" placeholder="${t('itemsLabel')} ${i+1}" value="${esc(val)}" data-idx="${i}" class="iinp">${items.length>2?`<button data-idx="${i}" class="rm-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>`:''}`;
       list.appendChild(row);
     });
     document.getElementById('count').textContent=`(${items.length}/${maxItems})`;
     document.getElementById('add-btn').style.display=items.length>=maxItems?'none':'';
     list.querySelectorAll('.iinp').forEach(el=>el.addEventListener('input',e=>{items[+e.target.dataset.idx]=e.target.value;chk();}));
-    list.querySelectorAll('.rm').forEach(el=>el.addEventListener('click',()=>{items.splice(+el.dataset.idx,1);renderItems();chk();}));
+    list.querySelectorAll('.rm-btn').forEach(el=>el.addEventListener('click',function() {items.splice(+this.dataset.idx,1);renderItems();chk();}));
   }
+  
   function chk(){
     const tv=document.getElementById('title').value.trim();
     document.getElementById('gen-btn').disabled=!(tv&&items.filter(s=>s.trim()).length>=2);
@@ -432,7 +448,7 @@ function initTextCreator(maxItems=5){
     const validItems=items.filter(s=>s.trim());
     const btn=document.getElementById('gen-btn'),errBox=document.getElementById('err-box');
     
-    btn.disabled=true;btn.innerHTML=`<span class="spinner"></span> ${t('creating')}`;
+    btn.disabled=true;btn.innerHTML=`<span class="spinner"></span> <span>${t('creating')}</span>`;
     errBox.style.display='none';
     
     try {
@@ -459,7 +475,7 @@ function initTextCreator(maxItems=5){
     } catch(e) {
       errBox.textContent='❌ '+e.message; errBox.style.display='block';
     } finally {
-      btn.disabled=false; btn.innerHTML=t('createLinks');
+      btn.disabled=false; btn.innerHTML=`${linkIconSvg} <span>${t('createLinks')}</span>`;
     }
   });
   renderItems();
@@ -473,6 +489,8 @@ function initImageCreator(slotCount=5){
   const app=document.getElementById('app');
   const slots=Array(slotCount).fill(null).map(()=>({img:null, label:'', fileBlob: null}));
   
+  const linkIconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
+
   app.innerHTML=`
     <button class="back-btn" id="back">${t('back')}</button>
     <div class="brand"><span class="crown">🏆</span><h1>${t('imgCreatorTitle')}</h1></div>
@@ -483,7 +501,7 @@ function initImageCreator(slotCount=5){
       <div class="slots-grid" id="slots-grid"></div>
     </div>
     <hr class="divider">
-    <button class="btn-primary" id="gen-btn" disabled>${t('createLinks')}</button>
+    <button class="btn-primary" id="gen-btn" disabled>${linkIconSvg} <span>${t('createLinks')}</span></button>
     <div class="err-box" id="err-box"></div>
     <div class="link-box" id="link-box"></div>`;
     
@@ -500,7 +518,7 @@ function initImageCreator(slotCount=5){
         div.addEventListener('click',()=>openPicker(i));
       }
       div.addEventListener('dragover',e=>{e.preventDefault();div.classList.add('drag-over');});
-      div.addEventListener('dragleave',()=>div.classList.remove('drag-over'));
+      div.addEventListener('dragleave',()=>div.classList.remove('drag-over'););
       div.addEventListener('drop',async e=>{
         e.preventDefault();div.classList.remove('drag-over');
         const f=e.dataTransfer.files[0];
@@ -512,4 +530,292 @@ function initImageCreator(slotCount=5){
       grid.appendChild(div);
     });
     grid.querySelectorAll('.label-input').forEach(el=>el.addEventListener('input',e=>{slots[+e.target.dataset.lidx].label=e.target.value;}));
-    grid.
+    grid.querySelectorAll('.remove-btn').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();slots[+el.dataset.ridx].img=null;slots[+el.dataset.ridx].fileBlob=null;slots[+el.dataset.ridx].label='';renderSlots();chk();}));
+    document.getElementById('slot-count').textContent=`(${slots.filter(s=>s.img).length}/${slotCount})`;
+  }
+
+  function openPicker(idx){
+    const inp=document.createElement('input');
+    inp.type='file';inp.accept='image/*';inp.style.cssText='position:fixed;top:-9999px;opacity:0';
+    document.body.appendChild(inp);
+    inp.onchange=async()=>{
+      const f=inp.files[0];
+      try{document.body.removeChild(inp);}catch(e){}
+      if(f){
+        const compressed = await compressImage(f);
+        if(compressed){ slots[idx].img=compressed; slots[idx].fileBlob = dataURLtoBlob(compressed); renderSlots(); chk(); }
+      }
+    };
+    setTimeout(()=>inp.click(),10);
+  }
+
+  function chk(){
+    const tv=document.getElementById('title').value.trim();
+    document.getElementById('gen-btn').disabled=!(tv&&slots.filter(s=>s.img).length>=2);
+  }
+  document.getElementById('title').addEventListener('input',chk);
+
+  document.getElementById('gen-btn').addEventListener('click',async()=>{
+    const title=document.getElementById('title').value.trim();
+    const filledItems=slots.filter(s=>s.img);
+    const btn=document.getElementById('gen-btn'), errBox=document.getElementById('err-box');
+    
+    btn.disabled=true;btn.innerHTML=`<span class="spinner"></span> <span>${t('creating')}</span>`;
+    errBox.style.display='none';
+    
+    try{
+      const { data: ranking, error } = await sb.from('rankings').insert({ title, type: 'image', language: LANG }).select().single();
+      if(error) throw error;
+
+      const dbItems = [];
+      for(let i=0; i<filledItems.length; i++){
+        const item = filledItems[i];
+        const fileName = `${crypto.randomUUID()}.jpg`;
+        const { error: uploadErr } = await sb.storage.from('ranking-images').upload(fileName, item.fileBlob);
+        if(uploadErr) throw uploadErr;
+        const { data: urlData } = sb.storage.from('ranking-images').getPublicUrl(fileName);
+        dbItems.push({ ranking_id: ranking.id, position: i + 1, label: item.label.trim(), image_url: urlData.publicUrl });
+      }
+
+      const { error: itemError } = await sb.from('ranking_items').insert(dbItems);
+      if(itemError) throw itemError;
+
+      const base = location.origin + location.pathname;
+      const playLink = `${base}?r=${ranking.id}`;
+      const resultsLink = `${base}?results=${ranking.id}`;
+      const intro = t('aiDefaultImg', filledItems.length);
+
+      const linkBox = document.getElementById('link-box');
+      linkBox.innerHTML = `
+        ${linkSection(t('playLinkLabel'), playLink, `<div style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px;text-transform:uppercase">${esc(title)}</div><div style="font-size:13px;color:var(--text2);margin-bottom:.75rem">${intro}</div>`)}
+        <div class="sep"></div>
+        ${linkSection(t('groupLinkLabel'), resultsLink)}
+      `;
+      linkBox.style.display='block';
+
+    }catch(e){
+      errBox.textContent='❌ '+e.message; errBox.style.display='block';
+    }finally{
+      btn.disabled=false; btn.innerHTML=`${linkIconSvg} <span>${t('createLinks')}</span>`;
+    }
+  });
+  renderSlots();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// GAME LOOP
+// ════════════════════════════════════════════════════════════════════
+async function initGame(id){
+  const app=document.getElementById('app');
+  app.innerHTML=`<div class="loading-screen"><span class="spinner spinner-light sp"></span><p>${t('loading')}</p></div>`;
+  
+  try {
+    const { data: ranking, error: rErr } = await sb.from('rankings').select('*').eq('id', id).single();
+    if(rErr) throw rErr;
+    if(ranking.language) LANG = ranking.language;
+
+    const { data: items, error: iErr } = await sb.from('ranking_items').select('*').eq('ranking_id', id).order('position');
+    if(iErr) throw iErr;
+
+    playGame(ranking, items);
+  } catch(e) {
+    app.innerHTML=`<p style="color:var(--text2);padding:1rem">${t('errLoad')}</p>`;
+  }
+}
+
+function playGame(ranking, items){
+  const app=document.getElementById('app');
+  const introText = ranking.type === 'text' ? t('aiDefault', items.length) : t('aiDefaultImg', items.length);
+  const st = { view:'start', q: shuffle(items), i: 0, sl: {}, tot: items.length };
+  
+  function render(){ if(st.view==='start') rStart(); else if(st.view==='rank') rRank(); else rResult(); }
+  
+  function rStart(){
+    app.innerHTML=`<div class="brand" style="margin-bottom:.4rem"><span class="crown">🏆</span><h1>${esc(ranking.title)}</h1></div><p class="sub">${t('blindRanking')} · ${st.tot} ${ranking.type==='text'?t('items'):t('images')}</p><div class="intro-box">${introText}</div><button class="btn-primary" id="sb">${t('startBtn')}</button>`;
+    document.getElementById('sb').onclick=()=>{st.view='rank';render();};
+  }
+  
+  function rRank(){
+    const cur=st.q[st.i], rem=st.tot-st.i-1, pct=Math.round((st.i/st.tot)*100);
+    const taken=Object.keys(st.sl).map(Number).sort((a,b)=>a-b);
+    
+    let displayArea = '';
+    if(ranking.type === 'text') {
+      displayArea = `<div class="ic fi"><div class="lb">${t('currentItem')}</div><div class="nm">${esc(cur.label)}</div><div class="ht">${rem===0?t('lastItem'):t('moreItems',rem)}</div></div>`;
+    } else {
+      displayArea = `<div class="img-card fi"><div class="img-wrap"><img src="${cur.image_url}" alt=""></div>${cur.label?`<div class="img-label">${esc(cur.label)}</div>`:''}<div class="img-hint">${rem===0?t('lastImage'):t('moreImages',rem)}</div></div>`;
+    }
+
+    let gridArea = '';
+    if(ranking.type === 'text'){
+      gridArea = `<div class="sg" id="sg"></div>${taken.length>0?'<div style="padding-top:1rem;border-top:1px solid rgba(255,255,255,0.05)"><div class="hi">'+taken.map(r=>'<strong>#'+r+'</strong> '+esc(st.sl[r].label)).join(' · ')+'</div></div>':''}`;
+    } else {
+      gridArea = `<div class="rank-row" id="rr"></div>${taken.length>0?'<div class="placed-list" id="pl"></div>':''}`;
+    }
+
+    app.innerHTML=`<div class="pw"><div class="pb"><div class="pf" style="width:${pct}%"></div></div><span class="pl">${st.i+1}/${st.tot}</span></div>${displayArea}<div class="sl">${t('whichPlace')}</div>${gridArea}`;
+
+    if(ranking.type === 'text'){
+      const g=document.getElementById('sg');
+      for(let r=1;r<=st.tot;r++){
+        const tk=st.sl[r]!==undefined, el=document.createElement('div');
+        el.className='s'+(tk?' tk':'');
+        el.innerHTML=tk?`<div class="rk">${r}</div><div class="sn" title="${esc(st.sl[r].label)}">${esc(st.sl[r].label)}</div>`:`<div class="rk">${r}</div><div class="fr">${t('free')}</div>`;
+        if(!tk) el.onclick=()=>place(cur,r);
+        g.appendChild(el);
+      }
+    } else {
+      const row=document.getElementById('rr');
+      for(let r=1;r<=st.tot;r++){
+        const tk=st.sl[r]!==undefined, btn=document.createElement('div');
+        btn.className='rb'+(tk?' taken':'');
+        btn.innerHTML=tk?`<img class="rb-thumb" src="${st.sl[r].image_url}" alt=""><div class="rb-num">${r}</div>`:`<div class="rb-num">${r}</div><div class="rb-free">${t('free')}</div>`;
+        if(!tk) btn.onclick=()=>place(cur,r);
+        row.appendChild(btn);
+      }
+      const pl=document.getElementById('pl');
+      if(pl) taken.forEach(r=>{
+        const row=document.createElement('div'); row.className='placed-row';
+        row.innerHTML=`<span class="pr-num">#${r}</span><img src="${st.sl[r].image_url}" alt=""><span>${esc(st.sl[r].label||'–')}</span>`;
+        pl.appendChild(row);
+      });
+    }
+  }
+  
+  function place(item,rank){ st.sl[rank]=item; st.i++; if(st.i>=st.tot) st.view='result'; render(); }
+  
+  function rResult(){
+    const ordered = [];
+    for(let r=1; r<=st.tot; r++) ordered.push(st.sl[r]);
+
+    const mc={0:'m1',1:'m2',2:'m3'};
+    const rows = ordered.map((item, i)=>{
+      const imgHTML = item.image_url ? `<img class="res-img" src="${item.image_url}" alt="">` : '';
+      const lbl = item.label || `${t('imgSlotLabel')} ${i+1}`;
+      return `<div class="res-row${i===0?' top1':''}"><div class="medal-wrap ${mc[i]||'mn'}">${i+1}</div>${imgHTML}<span style="font-size:14px;color:var(--text)">${esc(lbl)}</span></div>`;
+    }).join('');
+
+    app.innerHTML=`
+      <span class="tg">★ ${t('done').replace('★ ','')}</span>
+      <div class="brand" style="margin-bottom:.3rem"><span class="crown">🏆</span><h1>${esc(ranking.title)}</h1></div>
+      <p class="sub" style="margin-bottom:1.25rem">${t('yourResult')}</p>
+      <div class="result-grid">${rows}</div>
+      <div class="submit-box" id="submit-box">
+        <div class="sb-title">${t('submitShare')}</div>
+        <div class="submit-row">
+          <input type="text" id="player-name" placeholder="${t('namePlaceholder')}">
+          <button class="btn-primary" id="submit-btn" style="padding:10px 18px;font-size:13px">${t('submit')}</button>
+        </div>
+      </div>
+      <div class="br"><button id="rb">${t('playAgain')}</button></div>`;
+
+    document.getElementById('rb').onclick=()=>{st.q=shuffle(items); st.i=0; st.sl={}; st.view='start'; render();};
+
+    document.getElementById('submit-btn').addEventListener('click',async()=>{
+      const name = document.getElementById('player-name').value.trim() || t('anon');
+      const btn = document.getElementById('submit-btn');
+      btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+      
+      try {
+        const { data: submission, error: subErr } = await sb.from('submissions').insert({ ranking_id: ranking.id, player_name: name }).select().single();
+        if(subErr) throw subErr;
+
+        const subItems = ordered.map((item, index) => ({ submission_id: submission.id, item_label: item.label, rank_position: index + 1, image_url: item.image_url }));
+        const { error: itemErr } = await sb.from('submission_items').insert(subItems);
+        if(itemErr) throw itemErr;
+
+        const groupURL = `${location.origin}${location.pathname}?results=${ranking.id}`;
+        
+        document.getElementById('submit-box').outerHTML=`
+          <div class="link-box" style="display:block" id="share-links">
+            ${linkSection(t('groupLinkLabel'), groupURL)}
+          </div>`;
+          
+      } catch(e) {
+        btn.disabled=false; btn.innerHTML=t('submit'); alert(e.message);
+      }
+    });
+  }
+  
+  pageRerender=render;
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// GROUP RESULTS
+// ════════════════════════════════════════════════════════════════════
+function initGroupResults(id){
+  pageRerender=()=>initGroupResults(id);
+  const app=document.getElementById('app');
+  
+  async function load(){
+    app.innerHTML=`<div class="loading-screen"><span class="spinner spinner-light sp"></span><p>${t('loadingGroup')}</p></div>`;
+    
+    try {
+      const { data: ranking } = await sb.from('rankings').select('*').eq('id', id).single();
+      if(ranking && ranking.language) LANG = ranking.language;
+
+      const { data: submissions, error } = await sb.from('submissions').select(`id, player_name, created_at, submission_items(item_label, rank_position, image_url)`).eq('ranking_id', id).order('created_at', { ascending: false });
+      if(error) throw error;
+
+      if(submissions.length === 0){
+        app.innerHTML=`<div class="brand"><span class="crown">🏆</span><h1>${t('groupTitle')}</h1></div><p style="color:var(--text2);font-size:14px;margin-top:1rem">${t('noSubs')}</p><div class="br" style="margin-top:1.5rem"><button id="ref">${t('refresh')}</button></div>`;
+        document.getElementById('ref').onclick=load; return;
+      }
+
+      const itemStats = {};
+      submissions.forEach(sub => {
+        sub.submission_items.forEach(item => {
+          const key = item.item_label || item.image_url || 'Item';
+          if(!itemStats[key]) itemStats[key] = { label: item.item_label, img: item.image_url, total: 0, count: 0 };
+          itemStats[key].total += item.rank_position;
+          itemStats[key].count++;
+        });
+      });
+
+      const agg = Object.values(itemStats).map(v => ({ label: v.label, img: v.img, avg: v.total / v.count, count: v.count })).sort((a,b) => a.avg - b.avg);
+
+      const aggHTML = agg.map((item, i) => `
+        <div class="agg-row">
+          <div class="agg-rank">${i+1}</div>
+          ${item.img ? `<img class="agg-img" src="${item.img}">` : ''}
+          <div class="agg-label">${esc(item.label || `${t('imgSlotLabel')} ${i+1}`)}</div>
+          <div class="agg-score">Ø ${item.avg.toFixed(1)}</div>
+        </div>`).join('');
+
+      const subsHTML = submissions.map(sub => `
+        <div class="group-submission">
+          <div class="gs-name">👤 ${esc(sub.player_name || t('anon'))} <span style="font-size:11px;color:var(--text3);font-weight:400">${fmtDate(sub.created_at)}</span></div>
+          <div class="gs-items">
+            ${sub.submission_items.sort((a,b)=>a.rank_position - b.rank_position).map((item, i) => 
+              `<span class="gs-item"><span class="gs-rank">#${item.rank_position}</span> ${esc(item.item_label || `${t('imgSlotLabel')} ${item.rank_position}`)}</span>`
+            ).join('')}
+          </div>
+        </div>`).join('');
+
+      const topLabel = agg[0]?.label || t('imgSlotLabel');
+
+      app.innerHTML=`
+        <div class="brand" style="margin-bottom:.3rem"><span class="crown">🏆</span><h1>${ranking ? esc(ranking.title) : t('groupTitle')}</h1></div>
+        <p class="sub" style="margin-bottom:1.25rem">${t('aggregated')}</p>
+        <div class="stat-row">
+          <div class="stat-box"><div class="stat-num">${submissions.length}</div><div class="stat-lbl">${t('submissions')}</div></div>
+          <div class="stat-box"><div class="stat-num" style="font-size:18px">${esc(topLabel).substring(0,14)}</div><div class="stat-lbl">${t('mostChosen')}</div></div>
+        </div>
+        <div style="margin-bottom:1.5rem">${aggHTML}</div>
+        <div class="divider"></div>
+        <p class="sub" style="margin-bottom:1rem">${t('allSubs')}</p>
+        ${subsHTML}
+        <div class="br" style="margin-top:1.5rem"><button id="ref">${t('refresh')}</button></div>`;
+      
+      document.getElementById('ref').onclick=load;
+
+    } catch(e) {
+      app.innerHTML=`<p style="color:var(--text2);padding:1rem">${t('errLoad')}</p>`;
+    }
+  }
+  load();
+}
+</script>
+</body>
+</html>
