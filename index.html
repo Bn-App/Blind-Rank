@@ -518,7 +518,7 @@ function initImageCreator(slotCount=5){
         div.addEventListener('click',()=>openPicker(i));
       }
       div.addEventListener('dragover',e=>{e.preventDefault();div.classList.add('drag-over');});
-      div.addEventListener('dragleave',()=>div.classList.remove('drag-over'););
+      div.addEventListener('dragleave',()=>div.classList.remove('drag-over'));
       div.addEventListener('drop',async e=>{
         e.preventDefault();div.classList.remove('drag-over');
         const f=e.dataTransfer.files[0];
