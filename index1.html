@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Blind Ranking</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+:root {
+  --bg:#0c0e14;
+  --surface:#13161f;
+  --surface2:#1b1f2c;
+  --surface3:#222737;
+  --gold:#d4a843;
+  --gold-hi:#f0c355;
+  --gold-border:rgba(212,168,67,0.25);
+  --text:#eef0f5;
+  --text2:#9098ac;
+  --text3:#4e566a;
+  --radius:8px;
+  --radius-lg:12px;
+}
+
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  padding:2.5rem 1rem 5rem;
+}
+
+.container{
+  width:100%;
+  max-width:580px;
+  margin:auto;
+}
+
+.card{
+  background:var(--surface);
+  border-radius:var(--radius-lg);
+  border:1px solid rgba(255,255,255,0.06);
+  padding:2rem 1.75rem;
+}
+
+h1{
+  font-family:'Oswald',sans-serif;
+  font-size:26px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  margin-bottom:.5rem;
+}
+
+.small{
+  color:var(--text2);
+  font-size:13px;
+  line-height:1.6;
+  margin-bottom:1.5rem;
+}
+
+button{
+  background:var(--surface2);
+  color:var(--text);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:var(--radius);
+  padding:12px 16px;
+  cursor:pointer;
+  transition:.15s;
+}
+
+button:hover:not(:disabled){
+  border-color:var(--gold-border);
+  background:rgba(212,168,67,0.08);
+}
+
+button:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+}
+
+input{
+  width:100%;
+  background:var(--surface2);
+  border:1px solid rgba(255,255,255,0.08);
+  color:var(--text);
+  border-radius:var(--radius);
+  padding:12px 14px;
+  margin-bottom:10px;
+}
+
+.mode-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.mode-card{
+  background:var(--surface2);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:var(--radius-lg);
+  padding:1.5rem 1.25rem;
+  text-align:center;
+  cursor:pointer;
+  transition:.15s;
+}
+
+.mode-card:hover{
+  border-color:var(--gold-border);
+  background:rgba(212,168,67,0.08);
+  transform:translateY(-2px);
+}
+
+.mode-icon{
+  font-size:32px;
+  margin-bottom:10px;
+}
+
+.mode-title{
+  font-family:'Oswald',sans-serif;
+  font-size:18px;
+  text-transform:uppercase;
+}
+
+.mode-desc{
+  color:var(--text3);
+  font-size:12px;
+  margin-top:4px;
+}
+
+.result-row{
+  background:var(--surface2);
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:var(--radius);
+  padding:12px;
+  margin-top:8px;
+}
+
+.image-preview{
+  width:100%;
+  border-radius:10px;
+  margin:1rem 0;
+  max-height:320px;
+  object-fit:contain;
+  background:#0a0c10;
+}
+
+.link{
+  color:var(--gold);
+  font-size:13px;
+  word-break:break-all;
+  margin-bottom:1rem;
+}
+
+.rank-btn{
+  margin:4px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <div id="app"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://ftsdmnutrceguyktjrun.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0c2RtbnV0cmNlZ3V5a3RqcnVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjYzMTEsImV4cCI6MjA5NDM0MjMxMX0.323LOCVaqglzma5AQv-X54ZkrLtIS97BOgbJPcF_Fxk';
+
+const sb = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+const app = document.getElementById('app');
+
+let LANG = localStorage.getItem('blindranking-lang') || 'de';
+
+// XSS Schutzfunktion
+function escapeHTML(str) {
+  return String(str || '').replace(/[&<>'"]/g, 
+    tag => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[tag] || tag)
+  );
+}
+
+const T = {
+  de:{
+    createWhat:'Was möchtest du erstellen?',
+    text:'TEXT',
+    images:'BILDER',
+    textDesc:'Begriffe oder Aussagen',
+    imageDesc:'Fotos per Drag & Drop',
+    itemCount:'Anzahl der Items',
+    back:'← Zurück',
+    imageCreator:'🖼️ BILD-RANKING CREATOR',
+    textCreator:'🔤 TEXT-RANKING CREATOR',
+    imageFlow:'Bilder per Drag & Drop → Beschriftung → Links teilen.',
+    textFlow:'Begriffe eingeben → Blind ranken → Links teilen.',
+    titleLabel:'Titel / Fragestellung',
+    titlePlaceholder:'z. B. Schönste Reiseziele ...',
+    imagesLabel:'Bilder',
+    textsLabel:'Texte',
+    createLinks:'🔗 Links erstellen',
+    image:'Bild',
+    caption:'Beschriftung',
+    textPlaceholder:'Text',
+    enterTitle:'Bitte Titel eingeben',
+    minItems:'Mindestens 2 Items eingeben',
+    playLink:'🎮 Spiel-Link',
+    results:'📊 Ergebnisse',
+    rankTaken:'vergeben',
+    rankPlace:'Platz #',
+    yourRanking:'Dein Ranking',
+    yourName:'Dein Name',
+    saveResult:'Ergebnis speichern',
+    groupResults:'Gruppenergebnisse',
+    noResults:'Noch keine Ergebnisse vorhanden.',
+    saveSuccess:'Ergebnis gespeichert',
+    creating:'Erstelle...'
+  },
+  en:{
+    createWhat:'What would you like to create?',
+    text:'TEXT',
+    images:'IMAGES',
+    textDesc:'Terms or statements',
+    imageDesc:'Photos via drag & drop',
+    itemCount:'Number of items',
+    back:'← Back',
+    imageCreator:'🖼️ IMAGE RANKING CREATOR',
+    textCreator:'🔤 TEXT RANKING CREATOR',
+    imageFlow:'Upload images → Add labels → Share links.',
+    textFlow:'Enter terms → Blind rank → Share links.',
+    titleLabel:'Title / Question',
+    titlePlaceholder:'e.g. Best travel destinations ...',
+    imagesLabel:'Images',
+    textsLabel:'Texts',
+    createLinks:'🔗 Create links',
+    image:'Image',
+    caption:'Caption',
+    textPlaceholder:'Text',
+    enterTitle:'Please enter a title',
+    minItems:'Enter at least 2 items',
+    playLink:'🎮 Play link',
+    results:'📊 Results',
+    rankTaken:'taken',
+    rankPlace:'Rank #',
+    yourRanking:'Your Ranking',
+    yourName:'Your Name',
+    saveResult:'Save result',
+    groupResults:'Group Results',
+    noResults:'No results yet.',
+    saveSuccess:'Result saved',
+    creating:'Creating...'
+  }
+};
+
+function tr(key){
+  return T[LANG][key] || key;
+}
+
+const params = new URLSearchParams(location.search);
+
+const rankingId = params.get('r');
+const resultsId = params.get('results');
+
+boot();
+
+async function boot(){
+  try{
+    if(rankingId){
+      await loadGame(rankingId);
+    }else if(resultsId){
+      await loadResults(resultsId);
+    }else{
+      renderHome();
+    }
+  }catch(err){
+    console.error(err);
+
+    app.innerHTML = `
+      <div class="card">
+        <h2>Fehler</h2>
+        <div class="result-row">${escapeHTML(err.message)}</div>
+      </div>
+    `;
+  }
+}
+
+function renderHome(){
+  app.innerHTML = `
+    <div style="margin-bottom:18px;border-top:2px solid rgba(212,168,67,.4);"></div>
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;gap:8px;">
+      <button
+        id="lang-de"
+        style="
+          width:auto;
+          padding:8px 14px;
+          border-radius:999px;
+          ${LANG === 'de' ? 'border-color:var(--gold-border);background:rgba(212,168,67,.12);color:var(--gold);' : ''}
+        "
+      >DE</button>
+
+      <button
+        id="lang-en"
+        style="
+          width:auto;
+          padding:8px 14px;
+          border-radius:999px;
+          ${LANG === 'en' ? 'border-color:var(--gold-border);background:rgba(212,168,67,.12);color:var(--gold);' : ''}
+        "
+      >GB</button>
+    </div>
+
+    <div class="card">
+      <h1 style="display:flex;align-items:center;gap:12px;">
+        🏆
+        <span>BLIND-RANKING</span>
+      </h1>
+
+      <p class="small">${tr('createWhat')}</p>
+
+      <div class="mode-grid" style="margin-top:1.8rem;">
+
+        <div class="mode-card" id="btn-text-mode">
+          <div class="mode-icon">🔤</div>
+          <div class="mode-title">${tr('text')}</div>
+          <div class="mode-desc">${tr('textDesc')}</div>
+
+          <div class="mode-desc" style="margin-top:14px;">${tr('itemCount')}</div>
+
+          <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;">
+            <button id="text5" style="width:auto;padding:8px 12px;">5</button>
+            <button id="text10" style="width:auto;padding:8px 12px;">10</button>
+          </div>
+        </div>
+
+        <div class="mode-card" id="btn-img-mode" style="border-color:var(--gold-border);background:rgba(212,168,67,0.06);">
+          <div class="mode-icon">🖼️</div>
+          <div class="mode-title">${tr('images')}</div>
+          <div class="mode-desc">${tr('imageDesc')}</div>
+
+          <div class="mode-desc" style="margin-top:14px;">${tr('itemCount')}</div>
+
+          <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;">
+            <button id="image5" style="width:auto;padding:8px 12px;">5</button>
+            <button id="image10" style="width:auto;padding:8px 12px;">10</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  document.getElementById('text5').onclick = ()=>renderCreator('text',5);
+  document.getElementById('text10').onclick = ()=>renderCreator('text',10);
+  document.getElementById('image5').onclick = ()=>renderCreator('image',5);
+  document.getElementById('image10').onclick = ()=>renderCreator('image',10);
+
+  document.getElementById('lang-de').onclick = ()=>{
+    LANG='de';
+    localStorage.setItem('blindranking-lang','de');
+    renderHome();
+  };
+
+  document.getElementById('lang-en').onclick = ()=>{
+    LANG='en';
+    localStorage.setItem('blindranking-lang','en');
+    renderHome();
+  };
+}
+
+function renderCreator(type,count){
+  const creatorTitle = type === 'image'
+    ? tr('imageCreator')
+    : tr('textCreator');
+
+  const creatorDesc = type === 'image'
+    ? tr('imageFlow')
+    : tr('textFlow');
+
+  app.innerHTML = `
+    <div style="margin-bottom:18px;border-top:2px solid rgba(212,168,67,.4);"></div>
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;gap:8px;">
+      <button id="lang-de" style="width:auto;padding:8px 14px;border-radius:999px;${LANG === 'de' ? 'border-color:var(--gold-border);background:rgba(212,168,67,.12);color:var(--gold);' : ''}">DE</button>
+
+      <button id="lang-en" style="width:auto;padding:8px 14px;border-radius:999px;${LANG === 'en' ? 'border-color:var(--gold-border);background:rgba(212,168,67,.12);color:var(--gold);' : ''}">GB</button>
+    </div>
+
+    <div class="card">
+      <button id="back" style="width:auto;background:none;border:none;color:var(--text2);padding:0;margin-bottom:26px;">
+        ${tr('back')}
+      </button>
+
+      <h1>${creatorTitle}</h1>
+
+      <p class="small" style="font-size:15px;margin-top:10px;">
+        ${creatorDesc}
+      </p>
+
+      <div style="margin-top:34px;">
+        <div style="font-size:12px;letter-spacing:.12em;color:var(--text3);margin-bottom:10px;text-transform:uppercase;">
+          ${tr('titleLabel')}
+        </div>
+
+        <input id="title" placeholder="${tr('titlePlaceholder')}" style="height:56px;font-size:16px;" />
+      </div>
+
+      <div style="margin-top:28px;">
+        <div style="font-size:12px;letter-spacing:.12em;color:var(--text3);margin-bottom:14px;text-transform:uppercase;">
+          ${type === 'image' ? `${tr('imagesLabel')} (0/${count})` : `${tr('textsLabel')} (0/${count})`}
+        </div>
+
+        <div id="items" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:12px;"></div>
+      </div>
+
+      <button id="create" style="margin-top:24px;background:rgba(212,168,67,.85);color:#111;font-weight:700;height:46px;width:auto;padding:0 22px;">
+        ${tr('createLinks')}
+      </button>
+
+      <div id="links" style="margin-top:20px;"></div>
+    </div>
+  `;
+
+  document.getElementById('back').onclick = renderHome;
+
+  document.getElementById('lang-de').onclick = ()=>{
+    LANG='de';
+    localStorage.setItem('blindranking-lang','de');
+    renderCreator(type,count);
+  };
+
+  document.getElementById('lang-en').onclick = ()=>{
+    LANG='en';
+    localStorage.setItem('blindranking-lang','en');
+    renderCreator(type,count);
+  };
+
+  const itemsDiv = document.getElementById('items');
+  const items = [];
+
+  for(let i=0;i<count;i++){
+    const wrap = document.createElement('div');
+
+    if(type === 'image'){
+      wrap.innerHTML = `
+        <label style="cursor:pointer;display:block;">
+          <input type="file" class="file" accept="image/*" style="display:none;" />
+
+          <div class="upload-box" style="height:96px;border:2px dashed rgba(255,255,255,.14);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--surface2);">
+            <div style="font-size:28px;color:var(--text3);">+</div>
+            <div style="font-size:12px;color:var(--text2);">${tr('image')} ${i+1}</div>
+          </div>
+        </label>
+
+        <input placeholder="${tr('caption')}" class="label" style="margin-top:8px;font-size:12px;padding:10px;" />
+      `;
+
+      const fileInput = wrap.querySelector('.file');
+      const uploadBox = wrap.querySelector('.upload-box');
+
+      fileInput.onchange = e=>{
+        const file = e.target.files[0];
+
+        if(file){
+          const url = URL.createObjectURL(file);
+          uploadBox.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />`;
+        }
+      };
+
+    }else{
+      wrap.innerHTML = `<input placeholder="${tr('textPlaceholder')} ${i+1}" class="text-item" style="height:56px;" />`;
+    }
+
+    itemsDiv.appendChild(wrap);
+    items.push(wrap);
+  }
+
+  document.getElementById('create').onclick = async ()=>{
+    const title = document.getElementById('title').value.trim();
+
+    if(!title){
+      alert(tr('enterTitle'));
+      return;
+    }
+
+    const createBtn = document.getElementById('create');
+    createBtn.innerText = tr('creating');
+    createBtn.disabled = true;
+
+    try{
+      const rankingItems = [];
+
+      if(type === 'image'){
+        for(const item of items){
+          const label = item.querySelector('.label').value.trim();
+          const file = item.querySelector('.file').files[0];
+
+          if(!label || !file) continue;
+
+          const imageUrl = await uploadImage(file);
+          rankingItems.push({ label, img:imageUrl });
+        }
+      }else{
+        for(const item of items){
+          const text = item.querySelector('.text-item').value.trim();
+          if(!text) continue;
+          rankingItems.push({ label:text, img:null });
+        }
+      }
+
+      if(rankingItems.length < 2){
+        alert(tr('minItems'));
+        return;
+      }
+
+      const { data: ranking, error } = await sb
+        .from('rankings')
+        .insert({ title, type, language:LANG })
+        .select()
+        .single();
+
+      if(error) throw error;
+
+      const dbItems = rankingItems.map((item,index)=>({
+        ranking_id:ranking.id,
+        position:index+1,
+        label:item.label,
+        image_url:item.img
+      }));
+
+      const { error:itemError } = await sb
+        .from('ranking_items')
+        .insert(dbItems);
+
+      if(itemError) throw itemError;
+
+      const playLink = `${location.origin}${location.pathname}?r=${ranking.id}`;
+      const resultsLink = `${location.origin}${location.pathname}?results=${ranking.id}`;
+
+      document.getElementById('links').innerHTML = `
+        <div class="card">
+          <h3>${tr('playLink')}</h3>
+          <div class="link">${playLink}</div>
+
+          <h3>${tr('results')}</h3>
+          <div class="link">${resultsLink}</div>
+        </div>
+      `;
+
+    }catch(err){
+      console.error(err);
+      alert(err.message);
+    }finally{
+      createBtn.innerText = tr('createLinks');
+      createBtn.disabled = false;
+    }
+  };
+}
+
+async function uploadImage(file){
+  const ext = file.name.split('.').pop();
+  const fileName = `${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await sb.storage
+    .from('ranking-images')
+    .upload(fileName,file);
+
+  if(error) throw error;
+
+  const { data } = sb.storage
+    .from('ranking-images')
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
+}
+
+async function loadGame(id){
+  const { data: ranking, error: rankingError } = await sb
+    .from('rankings')
+    .select('*')
+    .eq('id',id)
+    .single();
+
+  if(rankingError) throw rankingError;
+
+  const { data: items, error: itemsError } = await sb
+    .from('ranking_items')
+    .select('*')
+    .eq('ranking_id',id)
+    .order('position');
+
+  if(itemsError) throw itemsError;
+
+  const shuffled = [...items].sort(()=>Math.random()-0.5);
+  const placed = {};
+  let current = 0;
+
+  render();
+
+  function render(){
+    if(current >= shuffled.length){
+      showFinished();
+      return;
+    }
+
+    const item = shuffled[current];
+
+    app.innerHTML = `
+      <div class="card">
+        <h1>${escapeHTML(ranking.title)}</h1>
+
+        ${item.image_url ? `<img class="image-preview" src="${item.image_url}" />` : ''}
+
+        <h2>${escapeHTML(item.label)}</h2>
+
+        <div id="ranks"></div>
+      </div>
+    `;
+
+    const ranks = document.getElementById('ranks');
+
+    for(let i=1;i<=items.length;i++){
+      const used = placed[i];
+      const btn = document.createElement('button');
+
+      btn.className='rank-btn';
+
+      if(used){
+        btn.disabled=true;
+        btn.innerText=`#${i} ${tr('rankTaken')}`;
+      }else{
+        btn.innerText=`${tr('rankPlace')}${i}`;
+
+        btn.onclick=()=>{
+          placed[i]=item;
+          current++;
+          render();
+        };
+      }
+
+      ranks.appendChild(btn);
+    }
+  }
+
+  async function showFinished(){
+    const ordered = [];
+
+    for(let i=1;i<=items.length;i++){
+      ordered.push(placed[i]);
+    }
+
+    app.innerHTML = `
+      <div class="card">
+        <h1>${tr('yourRanking')}</h1>
+
+        <div id="results"></div>
+
+        <input id="player" placeholder="${tr('yourName')}" />
+
+        <button id="save">${tr('saveResult')}</button>
+      </div>
+    `;
+
+    const results = document.getElementById('results');
+
+    ordered.forEach((item,index)=>{
+      results.innerHTML += `
+        <div class="result-row">
+          #${index+1} ${escapeHTML(item.label)}
+        </div>
+      `;
+    });
+
+    document.getElementById('save').onclick = async ()=>{
+      try{
+        const player = document.getElementById('player').value.trim() || 'Anonym';
+
+        const { data: submission, error: submissionError } = await sb
+          .from('submissions')
+          .insert({
+            ranking_id:id,
+            player_name:player
+          })
+          .select()
+          .single();
+
+        if(submissionError) throw submissionError;
+
+        const submissionItems = ordered.map((item,index)=>({
+          submission_id:submission.id,
+          item_label:item.label,
+          rank_position:index + 1,
+          image_url:item.image_url
+        }));
+
+        const { error:itemError } = await sb
+          .from('submission_items')
+          .insert(submissionItems);
+
+        if(itemError) throw itemError;
+
+        alert(tr('saveSuccess'));
+
+      }catch(err){
+        console.error(err);
+        alert(escapeHTML(err.message));
+      }
+    };
+  }
+}
+
+async function loadResults(id){
+  const { data, error } = await sb
+    .from('submissions')
+    .select(`
+      player_name,
+      submission_items (
+        item_label,
+        rank_position
+      )
+    `)
+    .eq('ranking_id',id);
+
+  if(error) throw error;
+
+  app.innerHTML = `
+    <div class="card">
+      <h1>📊 ${tr('groupResults')}</h1>
+      <div id="subs"></div>
+    </div>
+  `;
+
+  const subs = document.getElementById('subs');
+
+  if(!data.length){
+    subs.innerHTML = `
+      <div class="result-row">
+        ${tr('noResults')}
+      </div>
+    `;
+    return;
+  }
+
+  data.forEach(sub=>{
+    const items = sub.submission_items
+      .sort((a,b)=>a.rank_position-b.rank_position)
+      .map(i=>`#${i.rank_position} ${escapeHTML(i.item_label)}`)
+      .join('<br>');
+
+    subs.innerHTML += `
+      <div class="result-row">
+        <strong>${escapeHTML(sub.player_name)}</strong>
+        <br><br>
+        ${items}
+      </div>
+    `;
+  });
+}
+</script>
+</body>
+</html>
