@@ -17,9 +17,9 @@
     --radius:8px; --radius-lg:12px;
   }
   html,body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:2.5rem 1rem 5rem; }
-  .stage { width:100%; max-width:580px; position:relative; }
+  .stage { width:100%; max-width:580px; position:relative; overflow:hidden; }
   .stage::before { content:''; position:absolute; top:-1px; left:0; right:0; height:3px; background:linear-gradient(90deg,transparent,var(--gold),var(--gold-hi),var(--gold),transparent); border-radius:99px; z-index:1; }
-  .card { background:var(--surface); border-radius:var(--radius-lg); border:1px solid rgba(255,255,255,0.06); padding:2rem 1.75rem; }
+  .card { background:var(--surface); border-radius:var(--radius-lg); border:1px solid rgba(255,255,255,0.06); padding:2rem 1.75rem; width: 100%; }
   .brand { display:flex; align-items:center; gap:10px; margin-bottom:0.3rem; }
   .crown { font-size:22px; line-height:1; }
   h1 { font-family:'Oswald',sans-serif; font-size:26px; font-weight:700; color:var(--text); letter-spacing:0.04em; text-transform:uppercase; }
@@ -84,17 +84,20 @@
   .slot .label-input::placeholder { color:rgba(255,255,255,0.4); }
 
   /* link boxes */
-  .link-box { margin-top:1.5rem; background:var(--gold-bg); border:1px solid var(--gold-border); border-radius:var(--radius-lg); padding:1.25rem 1.5rem; display:none; }
-  .link-section { margin-bottom:1rem; }
+  .link-box { margin-top:1.5rem; background:var(--gold-bg); border:1px solid var(--gold-border); border-radius:var(--radius-lg); padding:1.25rem 1.5rem; display:none; max-width:100%; overflow:hidden; }
+  .link-section { margin-bottom:1rem; width:100%; }
   .link-section:last-child { margin-bottom:0; }
   .link-section .lbl { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--gold-dim); margin-bottom:6px; }
-  .url-row { display:flex; gap:8px; align-items:center; }
-  .url-display { flex:1; padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius); font-size:13px; color:var(--text2); background:var(--surface); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; user-select:all; cursor:pointer; transition:border-color .15s; }
+  
+  /* HIER IST DIE ANPASSUNG FÜR OPTION 1 */
+  .url-row { display:flex; gap:8px; align-items:center; width:100%; }
+  .url-display { flex:1; min-width:0; padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius); font-size:13px; color:var(--text2); background:var(--surface); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; user-select:all; cursor:pointer; transition:border-color .15s; }
+  
   .url-display:hover { border-color:var(--gold-border); color:var(--text); }
   .copy-btn { font-size:13px; padding:10px 14px; white-space:nowrap; flex-shrink:0; font-weight:600; background:var(--gold)!important; color:#0c0e14!important; border-color:var(--gold)!important; border-radius:var(--radius); cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:background .12s; }
   .copy-btn:hover { background:var(--gold-hi)!important; }
   .copy-btn.copied { background:#1a3a20!important; border-color:#2d6e3a!important; color:#5ecf7a!important; }
-  .sep { height:1px; background:rgba(255,255,255,0.08); margin:1rem 0; }
+  .sep { height:1px; background:rgba(255,255,255,0.08); margin:1rem 0; width:100%; }
   .err-box { margin-top:1rem; background:rgba(160,40,40,0.15); border:1px solid rgba(160,40,40,0.35); border-radius:var(--radius); padding:.75rem 1rem; font-size:13px; color:#e07070; display:none; }
 
   /* spinner */
@@ -195,7 +198,7 @@
     .stage::before { border-radius: 0; }
     .card { border-left: none; border-right: none; border-top: none; border-bottom: none; border-radius: 0; padding: 1.25rem 1rem 3rem; min-height: 100vh; }
     
-    /* Result list compacting - ERSTENS: SEHR KLEIN FÜR MOBILE! */
+    /* Result list compacting */
     .result-grid { gap: 4px; margin-bottom: 1rem; }
     .res-row, .agg-row { padding: 6px 8px!important; gap: 8px!important; }
     .res-img, .agg-img { width: 24px!important; height: 24px!important; border-radius: 3px; }
@@ -220,7 +223,9 @@
     .gs-item { padding: 2px 5px; font-size: 10px; }
     .group-submission { padding: 0.75rem; margin-bottom: 6px; }
     
-    /* General buttons */
+    /* Links and Buttons on Mobile */
+    .url-display { padding: 8px 10px; font-size: 12px; }
+    .copy-btn { padding: 8px 12px; font-size: 12px; }
     button { padding: 8px 14px; font-size: 12px; }
   }
 </style>
@@ -365,6 +370,15 @@ function dataURLtoBlob(dataurl) {
   return new Blob([u8arr], {type:mime});
 }
 
+function checkSupabase(errBox) {
+  if (!sb) {
+    errBox.textContent = '❌ Datenbank blockiert. Bitte Adblocker deaktivieren.';
+    errBox.style.display = 'block';
+    return false;
+  }
+  return true;
+}
+
 // ── ROBUSTE COPY FUNKTION ──────────────────────────────────────────────
 function copyBtn(el,text){
   el.onclick=async()=>{
@@ -474,19 +488,10 @@ function chooseCount(type){
   document.getElementById('p10').onclick=()=>type==='text'?initTextCreator(10):initImageCreator(10);
 }
 
-function checkSupabase(errBox) {
-  if (!sb) {
-    errBox.textContent = '❌ Datenbank blockiert. Bitte Adblocker deaktivieren.';
-    errBox.style.display = 'block';
-    return false;
-  }
-  return true;
-}
-
 // ════════════════════════════════════════════════════════════════════
 // TEXT CREATOR
 // ════════════════════════════════════════════════════════════════════
-function initTextCreator(maxItems){
+function initTextCreator(maxItems=5){
   pageRerender=()=>initTextCreator(maxItems);
   const app=document.getElementById('app');
   const items=Array(maxItems).fill('');
@@ -573,7 +578,7 @@ function initTextCreator(maxItems){
 // ════════════════════════════════════════════════════════════════════
 // IMAGE CREATOR
 // ════════════════════════════════════════════════════════════════════
-function initImageCreator(slotCount){
+function initImageCreator(slotCount=5){
   pageRerender=()=>initImageCreator(slotCount);
   const app=document.getElementById('app');
   const slots=Array(slotCount).fill(null).map(()=>({img:null, label:'', fileBlob: null}));
@@ -982,23 +987,4 @@ function initGroupResults(id){
         <div class="brand" style="margin-bottom:.3rem"><span class="crown">🏆</span><h1>${ranking ? esc(ranking.title) : t('groupTitle')}</h1></div>
         <p class="sub" style="margin-bottom:1.25rem">${t('aggregated')}</p>
         <div class="stat-row">
-          <div class="stat-box"><div class="stat-num">${submissions.length}</div><div class="stat-lbl">${t('submissions')}</div></div>
-          <div class="stat-box"><div class="stat-num" style="font-size:18px">${esc(topLabel||'—').substring(0,14)}</div><div class="stat-lbl">${t('mostChosen')}</div></div>
-        </div>
-        <div style="margin-bottom:1.5rem">${aggHTML}</div>
-        <div class="divider"></div>
-        <p class="sub" style="margin-bottom:1rem">${t('allSubs')}</p>
-        ${subsHTML}
-        <div class="br" style="margin-top:1.5rem"><button id="ref">${t('refresh')}</button></div>`;
-      
-      document.getElementById('ref').onclick=load;
-
-    } catch(e) {
-      app.innerHTML=`<p style="color:var(--text2);padding:1rem">${t('errLoad')}</p>`;
-    }
-  }
-  load();
-}
-</script>
-</body>
-</html>
+          <div class="stat-box"><div class="stat-num">${submissions.length}</div><div class="stat-lbl">${t('submissions')}
