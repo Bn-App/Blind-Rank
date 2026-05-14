@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blind-Ranking</title>
+
+<script>
+  window.onerror = function(msg, url, line) {
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#d32f2f;color:white;padding:15px;z-index:9999;font-family:sans-serif;font-size:12px;text-align:center;';
+    d.innerHTML = '<b>Fehler (Cache leeren!):</b> ' + msg + '<br>Zeile: ' + line;
+    document.body.appendChild(d);
+    return false;
+  };
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -19,7 +30,7 @@
   html,body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:2.5rem 1rem 5rem; }
   .stage { width:100%; max-width:580px; position:relative; overflow:hidden; }
   .stage::before { content:''; position:absolute; top:-1px; left:0; right:0; height:3px; background:linear-gradient(90deg,transparent,var(--gold),var(--gold-hi),var(--gold),transparent); border-radius:99px; z-index:1; }
-  .card { background:var(--surface); border-radius:var(--radius-lg); border:1px solid rgba(255,255,255,0.06); padding:2rem 1.75rem; width: 100%; }
+  .card { background:var(--surface); border-radius:var(--radius-lg); border:1px solid rgba(255,255,255,0.06); padding:2rem 1.75rem; width:100%; }
   .brand { display:flex; align-items:center; gap:10px; margin-bottom:0.3rem; }
   .crown { font-size:22px; line-height:1; }
   h1 { font-family:'Oswald',sans-serif; font-size:26px; font-weight:700; color:var(--text); letter-spacing:0.04em; text-transform:uppercase; }
@@ -83,17 +94,16 @@
   .slot .label-input { width:100%; height:auto; background:transparent; border:none; color:#fff; font-size:10px; font-family:'Inter',sans-serif; text-align:center; outline:none; padding:0 2px; }
   .slot .label-input::placeholder { color:rgba(255,255,255,0.4); }
 
-  /* link boxes */
+  /* link boxes (OPTION 1 FIX - Kein Sprengen des Layouts mehr!) */
   .link-box { margin-top:1.5rem; background:var(--gold-bg); border:1px solid var(--gold-border); border-radius:var(--radius-lg); padding:1.25rem 1.5rem; display:none; max-width:100%; overflow:hidden; }
   .link-section { margin-bottom:1rem; width:100%; }
   .link-section:last-child { margin-bottom:0; }
   .link-section .lbl { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--gold-dim); margin-bottom:6px; }
   
-  /* HIER IST DIE ANPASSUNG FÜR OPTION 1 */
   .url-row { display:flex; gap:8px; align-items:center; width:100%; }
   .url-display { flex:1; min-width:0; padding:10px 12px; border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius); font-size:13px; color:var(--text2); background:var(--surface); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; user-select:all; cursor:pointer; transition:border-color .15s; }
-  
   .url-display:hover { border-color:var(--gold-border); color:var(--text); }
+  
   .copy-btn { font-size:13px; padding:10px 14px; white-space:nowrap; flex-shrink:0; font-weight:600; background:var(--gold)!important; color:#0c0e14!important; border-color:var(--gold)!important; border-radius:var(--radius); cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:background .12s; }
   .copy-btn:hover { background:var(--gold-hi)!important; }
   .copy-btn.copied { background:#1a3a20!important; border-color:#2d6e3a!important; color:#5ecf7a!important; }
@@ -244,7 +254,6 @@
 const SUPABASE_URL = 'https://ftsdmnutrceguyktjrun.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0c2RtbnV0cmNlZ3V5a3RqcnVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjYzMTEsImV4cCI6MjA5NDM0MjMxMX0.323LOCVaqglzma5AQv-X54ZkrLtIS97BOgbJPcF_Fxk';
 
-// Abgesicherte Initialisierung: Verhindert Absturz, falls Adblocker das Skript blockiert
 let sb = null;
 try {
   if (window.supabase) {
@@ -379,7 +388,6 @@ function checkSupabase(errBox) {
   return true;
 }
 
-// ── ROBUSTE COPY FUNKTION ──────────────────────────────────────────────
 function copyBtn(el,text){
   el.onclick=async()=>{
     let ok=false;
@@ -987,4 +995,9 @@ function initGroupResults(id){
         <div class="brand" style="margin-bottom:.3rem"><span class="crown">🏆</span><h1>${ranking ? esc(ranking.title) : t('groupTitle')}</h1></div>
         <p class="sub" style="margin-bottom:1.25rem">${t('aggregated')}</p>
         <div class="stat-row">
-          <div class="stat-box"><div class="stat-num">${submissions.length}</div><div class="stat-lbl">${t('submissions')}
+          <div class="stat-box"><div class="stat-num">${submissions.length}</div><div class="stat-lbl">${t('submissions')}</div></div>
+          <div class="stat-box"><div class="stat-num" style="font-size:18px">${esc(topLabel||'—').substring(0,14)}</div><div class="stat-lbl">${t('mostChosen')}</div></div>
+        </div>
+        <div style="margin-bottom:1.5rem">${aggHTML}</div>
+        <div class="divider"></div>
+        <p class="sub" style
