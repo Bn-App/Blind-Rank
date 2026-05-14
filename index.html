@@ -165,13 +165,6 @@
   .submit-row { display:flex; gap:8px; }
   .submit-row input { flex:1; }
 
-  /* personal result card */
-  .result-card { background:var(--surface2); border:1px solid rgba(212,168,67,0.2); border-radius:var(--radius-lg); overflow:hidden; }
-  .result-card-header { background:var(--gold-bg); border-bottom:1px solid rgba(212,168,67,0.15); padding:1rem 1.25rem; }
-  .result-card-header .rc-name { font-size:13px; color:var(--gold-dim); margin-bottom:2px; font-weight:600; }
-  .result-card-header .rc-title { font-family:'Oswald',sans-serif; font-size:20px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:0.03em; }
-  .result-card-body { padding:1rem 1.25rem; }
-
   /* group results */
   .group-submission { background:var(--surface2); border:1px solid rgba(255,255,255,0.06); border-radius:var(--radius-lg); padding:1rem 1.25rem; margin-bottom:8px; }
   .group-submission .gs-name { font-size:13px; font-weight:600; color:var(--text); margin-bottom:.5rem; display:flex; align-items:center; gap:8px; }
@@ -222,7 +215,16 @@ const T = {
     titleLabel:'Titel / Fragestellung', titlePlaceholder:'z. B. Lieblingspizzabeläge ...',
     itemsLabel:'Items', addItem:'+ Item hinzufügen', createLinks:'Links erstellen',
     playLinkLabel:'🎮 Spiel-Link – an Mitspieler schicken', groupLinkLabel:'👥 Gruppen-Ergebnis – für dich zum Auswerten',
-    shareMyResult:'🏆 Mein Ergebnis teilen', seeAllResults:'👥 Alle Ergebnisse ansehen',
-    shareResultDesc:'Schick diesen Link deinen Freunden – sie sehen dein Ranking und können selbst spielen.',
     imgCreatorTitle:'Bild-Ranking Creator', imgCreatorDesc:'Bilder per Drag & Drop → Beschriftung → Links teilen.',
-    imgTitlePlaceho
+    imgTitlePlaceholder:'z. B. Schönste Reiseziele ...', imagesLabel:'Bilder', imgSlotLabel:'Bild', imgLabelPlaceholder:'Beschriftung ...',
+    blindRanking:'Blind-Ranking', items:'Items', images:'Bilder', startBtn:'Jetzt starten →',
+    currentItem:'Aktuelles Item', lastItem:'Letztes Item',
+    moreItems:(n)=>n===1?'Noch 1 weiteres Item unbekannt':`Noch ${n} weitere Items unbekannt`,
+    whichPlace:'Auf welchen Platz?', free:'frei',
+    lastImage:'Letztes Bild',
+    moreImages:(n)=>n===1?'Noch 1 weiteres folgt':`Noch ${n} weitere folgen`,
+    done:'★ Abgeschlossen', yourResult:'Dein Ergebnis',
+    submitShare:'Ergebnis speichern', namePlaceholder:'Dein Name (optional)',
+    playYourself:'Selbst spielen →', copyLink:'Link kopieren',
+    groupTitle:'Gruppenauswertung', aggregated:'Aggregiertes Ranking',
+    submissions:'
