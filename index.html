@@ -609,10 +609,6 @@ function initTextCreator(maxItems=5){
     const tv=document.getElementById('title').value.trim();
     document.getElementById('gen-btn').disabled=!(tv&&items.filter(s=>s.trim()).length>=2);
   }
-  document.getElementById('upload-all-btn').addEventListener('click',()=>{
-    openPicker(0);
-  });
-
   document.getElementById('title').addEventListener('input',chk);
   document.getElementById('add-btn').addEventListener('click',()=>{if(items.length<maxItems){items.push('');renderItems();chk();}});
 
@@ -673,7 +669,8 @@ function initImageCreator(slotCount=5){
     <div class="field"><label>${t('titleLabel')}</label><input type="text" id="title" placeholder="${t('imgTitlePlaceholder')}"/></div>
     <div class="field">
       <label>${t('imagesLabel')} <span id="slot-count" style="opacity:.4">(0/${slotCount})</span></label>
-      <div style="margin-bottom:12px;"><button type="button" class="btn-sm" id="upload-all-btn">📁 Alle Bilder hochladen</button></div><div class="slots-grid" id="slots-grid"></div>
+      <button type="button" id="upload-all-btn" class="btn-sm" style="margin-bottom:10px;">📁 Alle Bilder hochladen</button>
+      <div class="slots-grid" id="slots-grid"></div>
     </div>
     <hr class="divider">
     <button class="btn-primary" id="gen-btn" disabled>${linkIconSvg} <span>${t('createLinks')}</span></button>
@@ -697,20 +694,11 @@ function initImageCreator(slotCount=5){
       div.addEventListener('drop', async e => {
         e.preventDefault();
         div.classList.remove('drag-over');
-        const files=Array.from(e.dataTransfer.files||[]).filter(f=>f.type.startsWith('image/'));
-        let targetIndex=i;
-        for(const f of files){
-          while(targetIndex<slots.length && slots[targetIndex].img) targetIndex++;
-          if(targetIndex>=slots.length) break;
-          const compressed=await compressImage(f);
-          if(compressed){
-            slots[targetIndex].img=compressed;
-            slots[targetIndex].fileBlob=dataURLtoBlob(compressed);
-            slots[targetIndex].label=f.name.replace(/\.[^/.]+$/,'');
-            targetIndex++;
-          }
+        const f=e.dataTransfer.files[0];
+        if(f&&f.type.startsWith('image/')){
+          const compressed = await compressImage(f);
+          if(compressed){ slots[i].img=compressed; slots[i].fileBlob = dataURLtoBlob(compressed); renderSlots(); chk(); }
         }
-        renderSlots(); chk();
       });
       grid.appendChild(div);
     });
@@ -726,19 +714,19 @@ function initImageCreator(slotCount=5){
     inp.onchange=async()=>{
       const files=Array.from(inp.files||[]);
       try{document.body.removeChild(inp);}catch(e){}
-      let targetIndex=idx;
+      let pos=idx;
       for(const f of files){
-        while(targetIndex<slots.length && slots[targetIndex].img) targetIndex++;
-        if(targetIndex>=slots.length) break;
+        while(pos<slots.length && slots[pos].img) pos++;
+        if(pos>=slots.length) break;
         const compressed=await compressImage(f);
         if(compressed){
-          slots[targetIndex].img=compressed;
-          slots[targetIndex].fileBlob=dataURLtoBlob(compressed);
-          slots[targetIndex].label=f.name.replace(/\.[^/.]+$/,'');
-          targetIndex++;
+          slots[pos].img=compressed;
+          slots[pos].fileBlob=dataURLtoBlob(compressed);
+          slots[pos].label=f.name.replace(/\.[^/.]+$/,'');
+          pos++;
         }
       }
-      renderSlots();chk();
+      renderSlots(); chk();
     };
     setTimeout(()=>inp.click(),10);
   }
@@ -798,6 +786,9 @@ function initImageCreator(slotCount=5){
       btn.disabled=false; btn.innerHTML=`${linkIconSvg} <span>${t('createLinks')}</span>`;
     }
   });
+
+  document.getElementById('upload-all-btn').onclick=()=>openPicker(0);
+
   renderSlots();
 }
 
