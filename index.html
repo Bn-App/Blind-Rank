@@ -609,6 +609,10 @@ function initTextCreator(maxItems=5){
     const tv=document.getElementById('title').value.trim();
     document.getElementById('gen-btn').disabled=!(tv&&items.filter(s=>s.trim()).length>=2);
   }
+  document.getElementById('upload-all-btn').addEventListener('click',()=>{
+    openPicker(0);
+  });
+
   document.getElementById('title').addEventListener('input',chk);
   document.getElementById('add-btn').addEventListener('click',()=>{if(items.length<maxItems){items.push('');renderItems();chk();}});
 
@@ -669,7 +673,7 @@ function initImageCreator(slotCount=5){
     <div class="field"><label>${t('titleLabel')}</label><input type="text" id="title" placeholder="${t('imgTitlePlaceholder')}"/></div>
     <div class="field">
       <label>${t('imagesLabel')} <span id="slot-count" style="opacity:.4">(0/${slotCount})</span></label>
-      <div class="slots-grid" id="slots-grid"></div>
+      <div style="margin-bottom:12px;"><button type="button" class="btn-sm" id="upload-all-btn">📁 Alle Bilder hochladen</button></div><div class="slots-grid" id="slots-grid"></div>
     </div>
     <hr class="divider">
     <button class="btn-primary" id="gen-btn" disabled>${linkIconSvg} <span>${t('createLinks')}</span></button>
@@ -693,11 +697,20 @@ function initImageCreator(slotCount=5){
       div.addEventListener('drop', async e => {
         e.preventDefault();
         div.classList.remove('drag-over');
-        const f=e.dataTransfer.files[0];
-        if(f&&f.type.startsWith('image/')){
-          const compressed = await compressImage(f);
-          if(compressed){ slots[i].img=compressed; slots[i].fileBlob = dataURLtoBlob(compressed); renderSlots(); chk(); }
+        const files=Array.from(e.dataTransfer.files||[]).filter(f=>f.type.startsWith('image/'));
+        let targetIndex=i;
+        for(const f of files){
+          while(targetIndex<slots.length && slots[targetIndex].img) targetIndex++;
+          if(targetIndex>=slots.length) break;
+          const compressed=await compressImage(f);
+          if(compressed){
+            slots[targetIndex].img=compressed;
+            slots[targetIndex].fileBlob=dataURLtoBlob(compressed);
+            slots[targetIndex].label=f.name.replace(/\.[^/.]+$/,'');
+            targetIndex++;
+          }
         }
+        renderSlots(); chk();
       });
       grid.appendChild(div);
     });
@@ -708,15 +721,24 @@ function initImageCreator(slotCount=5){
 
   function openPicker(idx){
     const inp=document.createElement('input');
-    inp.type='file';inp.accept='image/*';inp.style.cssText='position:fixed;top:-9999px;opacity:0';
+    inp.type='file';inp.accept='image/*';inp.multiple=true;inp.style.cssText='position:fixed;top:-9999px;opacity:0';
     document.body.appendChild(inp);
     inp.onchange=async()=>{
-      const f=inp.files[0];
+      const files=Array.from(inp.files||[]);
       try{document.body.removeChild(inp);}catch(e){}
-      if(f){
-        const compressed = await compressImage(f);
-        if(compressed){ slots[idx].img=compressed; slots[idx].fileBlob = dataURLtoBlob(compressed); renderSlots(); chk(); }
+      let targetIndex=idx;
+      for(const f of files){
+        while(targetIndex<slots.length && slots[targetIndex].img) targetIndex++;
+        if(targetIndex>=slots.length) break;
+        const compressed=await compressImage(f);
+        if(compressed){
+          slots[targetIndex].img=compressed;
+          slots[targetIndex].fileBlob=dataURLtoBlob(compressed);
+          slots[targetIndex].label=f.name.replace(/\.[^/.]+$/,'');
+          targetIndex++;
+        }
       }
+      renderSlots();chk();
     };
     setTimeout(()=>inp.click(),10);
   }
