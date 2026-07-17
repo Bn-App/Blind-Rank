@@ -36,6 +36,7 @@
 document.addEventListener('DOMContentLoaded', async function() {
   const loading = document.getElementById('__bundler_loading');
   function setStatus(msg) { if (loading) loading.textContent = msg; }
+  function bundlerAddCopyright(doc) { try { if (doc.getElementById('__bundler_copyright')) return; var f = doc.createElement('div'); f.id = '__bundler_copyright'; f.textContent = '© B.B.'; f.style.cssText = 'position:fixed;left:0;right:0;bottom:0;text-align:center;font:12px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;color:#999;background:rgba(12,14,20,0.6);padding:4px 0;z-index:99998;pointer-events:none;'; (doc.body || doc.documentElement).appendChild(f); } catch (e) {} }
 
   // Error sink persists across replaceWith since it's on window, not the DOM.
   window.addEventListener('error', function(e) {
@@ -225,6 +226,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       if (window.Babel && typeof window.Babel.transformScriptTags === 'function') {
         window.Babel.transformScriptTags();
       }
+      try { bundlerAddCopyright(document); } catch (e) {}
       return;
     }
 
@@ -278,6 +280,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                      document.getElementById('__bundler_placeholder');
         if (splash) splash.remove();
         if (loading) loading.remove();
+      try { bundlerAddCopyright(cw.document); } catch (e) {}
         var el = r.anchor && cw.document.getElementById(r.anchor);
         if (el) el.scrollIntoView();
         else cw.scrollTo(0, 0);
