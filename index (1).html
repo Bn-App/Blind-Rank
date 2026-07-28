@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="de" id="html-root">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blind-Ranking</title>
+
+<script>
+  window.onerror = function(msg, url, line) {
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#a8462d;color:white;padding:15px;z-index:9999;font-family:sans-serif;font-size:12px;text-align:center;';
+    d.innerHTML = '<b>Fehler (Cache leeren!):</b> ' + msg + '<br>Zeile: ' + line;
+    document.body.appendChild(d);
+    return false;
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  :root{
+    --bg:#f5f3ef; --surface:#ffffff; --surface2:#faf8f4; --surface3:#edeae3;
+    --gold:#c28e30; --gold-hi:#e0ae4e; --gold-dim:#9a6f22;
+    --gold-bg:rgba(194,142,48,0.10); --gold-border:rgba(194,142,48,0.30);
+    --text:#17161a; --text2:#5c5964; --text3:#76737c;
+    --line:rgba(22,20,16,0.10); --line2:rgba(22,20,16,0.18);
+    --radius:10px; --radius-lg:16px;
+  }
+  html, body{
+    font-family:'Instrument Sans',system-ui,sans-serif;
+    background:radial-gradient(120% 70% at 50% -10%, #ffffff 0%, var(--bg) 60%) fixed;
+    color:var(--text); min-height:100vh;
+    display:flex; align-items:flex-start; justify-content:center;
+    padding:1.75rem 1rem 5rem; overflow-x:hidden; max-width:100vw;
+    -webkit-font-smoothing:antialiased;
+  }
+  .stage{ width:100%; max-width:560px; position:relative; }
+  .card{
+    background:var(--surface); border-radius:22px; border:1px solid var(--line);
+    padding:2rem 1.6rem 2.2rem; width:100%; position:relative; overflow:hidden;
+    box-shadow:0 24px 60px -34px rgba(22,20,16,0.45);
+  }
+  .card::before{ content:''; position:absolute; top:0; left:12%; right:12%; height:1px;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent); }
+
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:.35rem; }
+  .crown{ font-size:19px; line-height:1; filter:saturate(.85); }
+  h1{ font-family:'Archivo',sans-serif; font-size:27px; font-weight:800; color:var(--text);
+      letter-spacing:-0.025em; line-height:1.1; }
+  .desc{ font-size:14.5px; color:var(--text2); margin-bottom:1.6rem; line-height:1.6; padding-left:29px; }
+  label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em;
+         color:var(--text3); display:block; margin-bottom:8px; }
+  .field{ margin-bottom:1.4rem; }
+
+  input[type="text"]{
+    width:100%; height:46px; padding:0 15px; background:var(--surface2);
+    border:1px solid var(--line); border-radius:var(--radius); color:var(--text);
+    font-size:15px; font-family:'Instrument Sans',sans-serif; outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  input::placeholder{ color:var(--text3); }
+  input:focus{ border-color:var(--gold-border); box-shadow:0 0 0 3px rgba(194,142,48,0.10); }
+
+  button{ display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    padding:10px 16px; border-radius:var(--radius); border:1px solid var(--line2);
+    background:transparent; color:var(--text2); font-size:13.5px;
+    font-family:'Instrument Sans',sans-serif; font-weight:600; cursor:pointer;
+    transition:background .15s,border-color .15s,color .15s; }
+  button:hover:not(:disabled){ background:var(--surface2); color:var(--text); border-color:var(--gold-border); }
+  button:disabled{ opacity:.35; cursor:default; }
+
+  .btn-primary{ background:linear-gradient(150deg,var(--gold-hi),var(--gold))!important;
+    color:#1a1206!important; border:none!important; font-family:'Archivo',sans-serif!important;
+    font-weight:700!important; font-size:15px!important; padding:14px 24px!important; }
+  .btn-primary:hover:not(:disabled){ filter:brightness(1.06); transform:translateY(-1px); }
+  .btn-sm{ font-size:13px; padding:9px 14px; border-style:dashed; }
+
+  .divider{ margin:1.5rem 0; border:none; border-top:1px solid var(--line); }
+  .back-btn{ font-size:12.5px; color:var(--text3); margin-bottom:1.15rem; display:inline-flex;
+    align-items:center; gap:5px; cursor:pointer; background:none; border:none; padding:0; }
+  .back-btn:hover{ color:var(--text2); background:none; border:none; }
+
+  .lang-bar{ display:flex; gap:6px; justify-content:flex-end; margin-bottom:14px; }
+  .lb{ padding:6px 12px; font-size:11px; font-weight:700; font-family:'Archivo',sans-serif;
+    color:var(--text3); border:1px solid var(--line); border-radius:8px; background:transparent;
+    cursor:pointer; transition:.15s; letter-spacing:.08em; }
+  .lb:hover{ color:var(--text2); border-color:var(--line2); }
+  .lb.active{ color:var(--gold); border-color:var(--gold-border); background:var(--gold-bg); }
+
+  .mode-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:1.6rem; }
+  .mode-card{ background:var(--surface2); border:1px solid var(--line); border-radius:var(--radius-lg);
+    padding:1.35rem 1.15rem; text-align:left; cursor:pointer; transition:.16s; }
+  .mode-card:hover{ border-color:var(--gold-border); background:#fffdf8; transform:translateY(-2px); }
+  .mode-icon{ font-size:26px; margin-bottom:1.1rem; filter:saturate(.9); }
+  .mode-title{ font-family:'Archivo',sans-serif; font-size:20px; font-weight:700;
+    letter-spacing:-0.01em; color:var(--text); margin-bottom:.3rem; }
+  .mode-desc{ font-size:13px; color:var(--text3); line-height:1.45; }
+
+  .item-row{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .num{ font-family:'Archivo',sans-serif; font-size:13px; font-weight:700; color:var(--gold-dim);
+    width:16px; text-align:center; flex-shrink:0; }
+  .rm-btn{ width:44px; height:44px; flex-shrink:0; background:var(--surface2); border:1px solid var(--line);
+    border-radius:var(--radius); color:var(--text3); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:.15s; padding:0; }
+  .rm-btn:hover{ background:#fff5f3; color:#c0563c; border-color:rgba(192,86,60,.3); }
+
+  .slots-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; margin-bottom:.5rem;
+    border-radius:calc(var(--radius) + 6px); transition:.16s; padding:4px; margin:-4px -4px .96rem -4px; }
+  .slots-grid.drag-over{ background:var(--gold-bg); outline:2px dashed var(--gold-border); outline-offset:2px; }
+  .multi-hint{ font-size:11px; color:var(--text3); margin:-0.15rem 0 .6rem; }
+  .slot{ aspect-ratio:1; border:1px dashed var(--line2); border-radius:var(--radius);
+    background:repeating-linear-gradient(135deg,#f2efe8 0 6px,#faf8f4 6px 12px);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    cursor:pointer; position:relative; overflow:hidden; transition:.16s; }
+  .slot:hover,.slot.drag-over{ border-color:var(--gold-border); background:var(--gold-bg); }
+  .slot.filled{ border-style:solid; border-color:var(--line); background:var(--surface2); cursor:default; }
+  .slot .plus{ font-size:18px; color:var(--text3); margin-bottom:3px; line-height:1; }
+  .slot .slot-num{ font-family:ui-monospace,monospace; font-size:9px; color:#96939b; letter-spacing:.04em; }
+  .slot img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .slot .remove-btn{ position:absolute; top:4px; right:4px; width:20px; height:20px; border-radius:50%;
+    background:rgba(23,22,26,.7); color:#fff; font-size:11px; border:none; padding:0; display:flex;
+    align-items:center; justify-content:center; cursor:pointer; }
+  .slot .remove-btn:hover{ background:#c0563c; color:#fff; }
+  .slot .crop-btn{ position:absolute; top:4px; left:4px; width:20px; height:20px; border-radius:50%;
+    background:rgba(23,22,26,.7); color:#fff; border:none; padding:0; display:flex;
+    align-items:center; justify-content:center; cursor:pointer; }
+  .slot .crop-btn:hover{ background:var(--gold-dim); }
+  .slot .crop-badge{ position:absolute; bottom:4px; left:4px; width:16px; height:16px; border-radius:50%;
+    background:var(--gold); color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:9px; line-height:1; pointer-events:none; }
+
+  .crop-overlay{ position:fixed; inset:0; background:rgba(17,16,14,.6); backdrop-filter:blur(2px);
+    display:flex; align-items:center; justify-content:center; z-index:1000; padding:1rem; }
+  .crop-modal{ background:var(--surface); border-radius:var(--radius-lg); border:1px solid var(--line);
+    padding:1.3rem; width:100%; max-width:380px; box-shadow:0 24px 60px -20px rgba(22,20,16,.5); }
+  .crop-modal h3{ font-family:'Archivo',sans-serif; font-size:16px; font-weight:800; letter-spacing:-0.02em;
+    color:var(--text); margin-bottom:.2rem; }
+  .crop-modal .crop-hint{ font-size:12px; color:var(--text3); margin-bottom:.9rem; }
+  .crop-viewport{ width:100%; aspect-ratio:1; border-radius:var(--radius); overflow:hidden; position:relative;
+    background:var(--surface3); touch-action:none; cursor:grab; border:1px solid var(--line); }
+  .crop-viewport.grabbing{ cursor:grabbing; }
+  .crop-viewport img{ position:absolute; top:0; left:0; user-select:none; -webkit-user-drag:none;
+    transform-origin:0 0; will-change:transform; }
+  .crop-zoom-row{ display:flex; align-items:center; gap:10px; margin-top:.9rem; }
+  .crop-zoom-row svg{ flex-shrink:0; color:var(--text3); }
+  .crop-zoom-row input[type=range]{ flex:1; accent-color:var(--gold); }
+  .crop-btns{ display:flex; gap:8px; margin-top:1.1rem; }
+  .crop-btns button{ flex:1; padding:11px 10px; border-radius:var(--radius); font-size:13.5px;
+    font-weight:700; cursor:pointer; border:1px solid var(--line); background:var(--surface2); color:var(--text2); }
+  .crop-btns button:hover{ filter:brightness(.97); }
+  .crop-btns .cb-reset{ flex:.8; }
+  .crop-btns .cb-apply{ background:linear-gradient(150deg,var(--gold-hi),var(--gold)); color:#2a1c02; border-color:transparent; }
+  .slot .label-overlay{ position:absolute; bottom:0; left:0; right:0;
+    background:linear-gradient(transparent,rgba(0,0,0,.7)); padding:14px 4px 4px; }
+  .slot .label-input{ width:100%; height:auto; background:transparent; border:none; color:#fff;
+    font-size:10px; font-family:'Instrument Sans',sans-serif; text-align:center; outline:none; padding:0 2px; }
+  .slot .label-input::placeholder{ color:rgba(255,255,255,.55); }
+
+  .link-box{ margin-top:1.25rem; background:var(--gold-bg); border:1px solid var(--gold-border);
+    border-radius:var(--radius-lg); padding:1.15rem 1.15rem 1rem; display:none;
+    width:100%; max-width:100%; overflow:hidden; }
+  .link-section{ margin-bottom:1rem; width:100%; max-width:100%; overflow:hidden; }
+  .link-section:last-child{ margin-bottom:0; }
+  .link-section .lbl{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.12em;
+    color:var(--gold-dim); margin-bottom:7px; }
+  .url-row{ display:flex; gap:8px; align-items:center; width:100%; min-width:0; }
+  .url-display{ flex:1 1 0%; min-width:0; padding:11px 12px; border:1px solid var(--line);
+    border-radius:var(--radius); font-size:12.5px; color:var(--text2); background:var(--surface);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:ui-monospace,monospace;
+    user-select:all; cursor:pointer; transition:border-color .15s; }
+  .url-display:hover{ border-color:var(--gold-border); color:var(--text); }
+  .copy-btn{ font-size:13px; padding:11px 15px; white-space:nowrap; flex-shrink:0; font-weight:700;
+    background:var(--gold)!important; color:#fff!important; border:none!important;
+    border-radius:var(--radius); cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
+  .copy-btn:hover{ background:var(--gold-hi)!important; color:#1a1206!important; }
+  .copy-btn.copied{ background:#e6f4ea!important; color:#1e7a45!important; }
+  .sep{ height:1px; background:var(--gold-border); opacity:.5; margin:1rem 0; width:100%; }
+  .err-box{ margin-top:1rem; background:#fdf0ed; border:1px solid rgba(192,86,60,.3);
+    border-radius:var(--radius); padding:.8rem 1rem; font-size:13.5px; color:#a8462d; display:none; }
+
+  .spinner{ display:inline-block; width:14px; height:14px; border:2px solid rgba(26,18,6,.25);
+    border-top-color:#1a1206; border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
+  .spinner-light{ border-color:var(--surface3); border-top-color:var(--gold); }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-screen{ text-align:center; padding:3rem 1rem; }
+  .loading-screen .sp{ display:block; width:26px; height:26px; border-width:3px; margin:0 auto 1rem; }
+  .loading-screen p{ font-size:14px; color:var(--text2); }
+
+  .sub{ font-size:11px; color:var(--text3); letter-spacing:.14em; text-transform:uppercase;
+    margin-bottom:1.5rem; font-weight:600; }
+  .intro-box{ background:var(--surface2); border:1px solid var(--line); border-left:2px solid var(--gold);
+    border-radius:0 var(--radius) var(--radius) 0; padding:1rem 1.2rem; margin-bottom:1.6rem;
+    font-size:14.5px; line-height:1.65; color:var(--text2); }
+  .pw{ display:flex; align-items:center; gap:12px; margin-bottom:1.4rem; }
+  .pb{ flex:1; height:3px; background:var(--surface3); border-radius:99px; overflow:hidden; }
+  .pf{ height:100%; background:linear-gradient(90deg,var(--gold-dim),var(--gold-hi)); border-radius:99px; transition:width .4s ease; }
+  .pl{ font-family:'Archivo',sans-serif; font-size:12px; font-weight:700; color:var(--text3);
+    white-space:nowrap; letter-spacing:.06em; }
+  .ic{ background:linear-gradient(180deg,#fffdf7,var(--surface2)); border:1px solid var(--line);
+    border-radius:var(--radius-lg); padding:2rem 1.4rem; margin-bottom:1.2rem; text-align:center;
+    position:relative; overflow:hidden; }
+  .ic::before{ content:''; position:absolute; top:0; left:20%; right:20%; height:1px;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent); }
+  .ic .lb{ font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.14em;
+    color:var(--text3); margin-bottom:12px; }
+  .ic .nm{ font-family:'Archivo',sans-serif; font-size:32px; font-weight:800; color:var(--text);
+    letter-spacing:-0.03em; line-height:1.1; }
+  .ic .ht{ font-size:12.5px; color:var(--text3); margin-top:10px; }
+  .sl{ font-size:13px; color:var(--text2); margin-bottom:10px; }
+  .sg{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:1.4rem; }
+  .s{ background:var(--surface2); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 4px; text-align:center; cursor:pointer; transition:.14s; }
+  .s:hover:not(.tk){ background:var(--gold-bg); border-color:var(--gold-border); transform:translateY(-2px); }
+  .s.tk{ opacity:.35; cursor:default; }
+  .s .rk{ font-family:'Archivo',sans-serif; font-size:21px; font-weight:800; color:var(--text); letter-spacing:-0.02em; }
+  .s:hover:not(.tk) .rk{ color:var(--gold); }
+  .s .sn{ font-size:9px; color:var(--text3); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .s .fr{ font-size:9.5px; color:#96939b; margin-top:3px; }
+  .hi{ font-size:12.5px; color:var(--text3); line-height:1.9; }
+  .hi strong{ color:var(--gold-dim); font-family:'Archivo',sans-serif; }
+  .img-card{ background:var(--surface2); border:1px solid var(--line); border-radius:var(--radius-lg);
+    overflow:hidden; margin-bottom:1.2rem; position:relative; }
+  .img-card .img-wrap{ width:100%; max-height:300px; display:flex; align-items:center; justify-content:center; background:var(--surface3); }
+  .img-card .img-wrap img{ width:100%; max-height:300px; object-fit:contain; display:block; }
+  .img-card .img-label{ padding:12px 14px 4px; font-size:15px; color:var(--text); font-weight:600; text-align:center; }
+  .img-card .img-hint{ padding:0 14px 12px; font-size:12.5px; color:var(--text3); text-align:center; }
+  .rank-row{ display:flex; gap:8px; margin-bottom:1.4rem; }
+  .rb{ flex:1; aspect-ratio:1; background:var(--surface2); border:1px solid var(--line); border-radius:var(--radius);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer;
+    transition:.14s; padding:6px 2px; overflow:hidden; }
+  .rb:hover:not(.taken){ background:var(--gold-bg); border-color:var(--gold-border); transform:translateY(-2px); }
+  .rb:hover:not(.taken) .rb-num{ color:var(--gold); }
+  .rb.taken{ opacity:.35; cursor:default; }
+  .rb-num{ font-family:'Archivo',sans-serif; font-size:20px; font-weight:800; color:var(--text); letter-spacing:-0.02em; }
+  .rb-thumb{ width:100%; aspect-ratio:1; object-fit:cover; border-radius:6px; display:block; }
+  .rb-free{ font-size:9.5px; color:#96939b; }
+  .placed-list{ padding-top:1rem; border-top:1px solid var(--line); }
+  .placed-row{ display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:12.5px; color:var(--text3); }
+  .placed-row .pr-num{ font-family:'Archivo',sans-serif; font-size:12px; font-weight:700; color:var(--gold-dim);
+    width:18px; text-align:right; flex-shrink:0; }
+  .placed-row img{ width:24px; height:24px; object-fit:cover; border-radius:4px; flex-shrink:0; }
+  .fi{ animation:fi .25s ease; }
+  @keyframes fi{ from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:none;} }
+
+  .result-grid{ display:flex; flex-direction:column; gap:7px; margin-bottom:1.2rem; }
+  .res-row{ display:flex; align-items:center; gap:13px; background:var(--surface2); border:1px solid var(--line);
+    border-radius:var(--radius); padding:12px 14px; }
+  .res-row.top1{ background:var(--gold-bg); border-color:var(--gold-border); }
+  .medal-wrap{ width:32px; height:32px; border-radius:50%; flex-shrink:0; display:flex; align-items:center;
+    justify-content:center; font-family:'Archivo',sans-serif; font-size:14px; font-weight:800; }
+  .m1{ background:linear-gradient(150deg,var(--gold-hi),var(--gold)); color:#fff; }
+  .m2{ background:#c9c6bf; color:#fff; } .m3{ background:#c49a76; color:#fff; }
+  .mn{ background:var(--surface3); color:var(--text3); }
+  .res-img{ width:44px; height:44px; object-fit:cover; border-radius:8px; flex-shrink:0; }
+  .tg{ display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.12em; padding:5px 12px; border-radius:99px; background:var(--gold-bg); color:var(--gold);
+    border:1px solid var(--gold-border); margin-bottom:14px; }
+  .br{ display:flex; gap:8px; flex-wrap:wrap; margin-top:1.4rem; }
+
+  .submit-box{ background:var(--surface2); border:1px solid var(--line); border-radius:var(--radius-lg);
+    padding:1.1rem 1.2rem; margin-top:1.4rem; }
+  .submit-box .sb-title{ font-size:13.5px; font-weight:600; color:var(--text); margin-bottom:.7rem; }
+  .submit-row{ display:flex; gap:8px; }
+  .submit-row input{ flex:1; min-width:0; }
+
+  .result-card{ background:var(--surface2); border:1px solid var(--gold-border); border-radius:var(--radius-lg); overflow:hidden; }
+  .result-card-header{ background:var(--gold-bg); border-bottom:1px solid var(--gold-border); padding:1.1rem 1.25rem; }
+  .result-card-header .rc-name{ font-size:12.5px; color:var(--gold-dim); margin-bottom:3px; font-weight:700; }
+  .result-card-header .rc-title{ font-family:'Archivo',sans-serif; font-size:22px; font-weight:800;
+    color:var(--text); letter-spacing:-0.025em; }
+  .result-card-body{ padding:1.1rem 1.25rem; }
+
+  .group-submission{ background:var(--surface2); border:1px solid var(--line); border-radius:var(--radius-lg);
+    padding:.95rem 1.1rem; margin-bottom:8px; }
+  .group-submission .gs-name{ font-size:13.5px; font-weight:600; color:var(--text); margin-bottom:.6rem;
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .gs-items{ display:flex; flex-wrap:wrap; gap:6px; }
+  .gs-item{ font-size:12px; color:var(--text2); background:var(--surface3); border-radius:6px; padding:4px 9px;
+    display:flex; align-items:center; gap:5px; }
+  .gs-rank{ font-family:'Archivo',sans-serif; font-size:10.5px; font-weight:700; color:var(--gold-dim); }
+  .agg-row{ display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:7px;
+    background:var(--surface2); border:1px solid var(--line); border-radius:var(--radius); }
+  .agg-rank{ font-family:'Archivo',sans-serif; font-size:17px; font-weight:800; color:var(--gold-dim);
+    width:22px; text-align:center; flex-shrink:0; }
+  .agg-label{ flex:1; font-size:14.5px; color:var(--text); min-width:0; }
+  .agg-score{ font-family:ui-monospace,monospace; font-size:11.5px; color:var(--text3);
+    white-space:nowrap; flex-shrink:0; }
+  .agg-img{ width:40px; height:40px; object-fit:cover; border-radius:6px; flex-shrink:0; }
+  .stat-row{ display:flex; gap:9px; margin-bottom:1.4rem; }
+  .stat-box{ flex:1; background:var(--surface2); border:1px solid var(--line); border-radius:var(--radius);
+    padding:.9rem .8rem; }
+  .stat-num{ font-family:'Archivo',sans-serif; font-size:26px; font-weight:800; color:var(--gold); letter-spacing:-0.03em; }
+  .stat-lbl{ font-size:11.5px; color:var(--text3); margin-top:2px; }
+
+  @media (max-width:600px){
+    html, body{ padding:0; }
+    .stage{ max-width:100vw; }
+    .card{ border:none; border-radius:0; padding:1.4rem 1.1rem 3rem; min-height:100vh; box-shadow:none; }
+    .lang-bar{ padding:12px 1.1rem 0; margin-bottom:0; }
+    h1{ font-size:23px; }
+    .desc{ font-size:14px; padding-left:0; margin-bottom:1.3rem; }
+    .ic .nm{ font-size:26px; }
+    .result-grid{ gap:5px; }
+    .res-row, .agg-row{ padding:9px 11px; gap:10px; }
+    .res-img, .agg-img{ width:30px; height:30px; border-radius:5px; }
+    .medal-wrap{ width:26px; height:26px; font-size:12px; }
+    .agg-rank{ width:18px; font-size:15px; }
+    .agg-label{ font-size:13.5px; }
+    .stat-num{ font-size:22px; }
+    .submit-box{ padding:.9rem 1rem; }
+    .btn-primary{ font-size:14px!important; padding:12px 18px!important; }
+    .slots-grid{ gap:6px; }
+    .sg{ gap:6px; }
+    .s{ padding:11px 2px; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="lang-bar" id="lang-bar">
+    <button class="lb" id="lb-de">DE</button>
+    <button class="lb" id="lb-en">GB</button>
+  </div>
+  <div class="card" id="app"></div>
+  <div style="text-align:center;font-size:12px;color:var(--text3);padding:16px 0 0">© B.B.</div>
+</div>
+
+<script>
+// ── SUPABASE CONFIG ───────────────────────────────────────────────────
+const SUPABASE_URL = 'https://ftsdmnutrceguyktjrun.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ0c2RtbnV0cmNlZ3V5a3RqcnVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjYzMTEsImV4cCI6MjA5NDM0MjMxMX0.323LOCVaqglzma5AQv-X54ZkrLtIS97BOgbJPcF_Fxk';
+
+let sb = null;
+try {
+  if (window.supabase) {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch(e) { console.warn('Supabase konnte nicht geladen werden.'); }
+
+// ── LANGUAGE & TRANSLATIONS ───────────────────────────────────────────
+let LANG = 'de';
+try { 
+  const stored = localStorage.getItem('blindranking-lang'); 
+  if (stored === 'en') LANG = 'en';
+} catch(e) {}
+document.getElementById('html-root').lang = LANG;
+
+const T = {
+  de:{
+    back:'← Zurück', copy:'Kopieren', copied:'✓ Kopiert!', refresh:'↺ Aktualisieren',
+    playAgain:'↺ Nochmal', submit:'Senden/teilen', anon:'Anonym',
+    creating:'Wird erstellt …', loading:'Ranking wird geladen …',
+    loadingGroup:'Gruppenauswertung wird geladen …', errLoad:'❌ Konnte nicht geladen werden.',
+    homeDesc:'Was möchtest du erstellen?',
+    textTitle:'Text', textDesc:'Begriffe oder Aussagen',
+    imgTitle:'Bilder', imgDesc:'Fotos per Drag & Drop',
+    countDesc:'Wie viele Items?', count5Desc:'Kompakt & schnell', count10Desc:'Umfangreicher',
+    textCreatorTitle:'Text-Ranking Creator', textCreatorDesc:'Items eingeben → KI schreibt Intro → Links teilen.',
+    titleLabel:'Titel / Fragestellung', titlePlaceholder:'z. B. Lieblingspizzabeläge ...',
+    itemsLabel:'Items', addItem:'+ Item hinzufügen', createLinks:'Links erstellen',
+    playLinkLabel:'🎮 Spiel-Link – an Mitspieler schicken', groupLinkLabel:'👥 Gruppen-Ergebnis – für dich zum Auswerten',
+    shareMyResult:'🏆 Mein Ergebnis teilen', seeAllResults:'👥 Alle Ergebnisse ansehen',
+    shareResultDesc:'Schick diesen Link deinen Freunden – sie sehen dein Ranking und können selbst spielen.',
+    imgCreatorTitle:'Bild-Ranking Creator', imgCreatorDesc:'Bilder per Drag & Drop → Beschriftung → Links teilen.',
+    imgTitlePlaceholder:'z. B. Schönste Reiseziele ...', imagesLabel:'Bilder', imgSlotLabel:'Bild', imgLabelPlaceholder:'Beschriftung ...',
+    multiHint:'Du kannst auch mehrere Bilder gleichzeitig hierher ziehen oder auswählen – sie werden automatisch verteilt.',
+    tooManyFiles:function(n){ return `Nur ${n} freie Plätze – die übrigen Bilder wurden nicht hinzugefügt.`; },
+    adjustCrop:'Bildausschnitt anpassen', cropTitle:'Ausschnitt wählen',
+    cropHint:'Ziehen zum Verschieben, Regler zum Zoomen – so wird das Bild später angezeigt.',
+    cropReset:'Zurücksetzen', cropCancel:'Abbrechen', cropApply:'Übernehmen',
+    blindRanking:'Blind-Ranking', items:'Items', images:'Bilder', startBtn:'Jetzt starten →',
+    currentItem:'Aktuelles Item', lastItem:'Letztes Item',
+    moreItems:function(n){ return n===1?'Noch 1 weiteres Item unbekannt':`Noch ${n} weitere Items unbekannt`; },
+    whichPlace:'Auf welchen Platz?', free:'frei',
+    lastImage:'Letztes Bild',
+    moreImages:function(n){ return n===1?'Noch 1 weiteres folgt':`Noch ${n} weitere folgen`; },
+    done:'★ Abgeschlossen', yourResult:'Dein Ergebnis',
+    submitShare:'Ergebnis senden/teilen', namePlaceholder:'Dein Name (optional)',
+    playYourself:'Selbst spielen →', copyLink:'Link kopieren',
+    loadingResult:'Ergebnis wird geladen …', errResult:'❌ Ergebnis nicht gefunden.',
+    groupTitle:'Gruppenauswertung', aggregated:'Aggregiertes Ranking',
+    submissions:'Einsendungen', mostChosen:'Meistgewählt #1',
+    allSubs:'Alle Einsendungen', noSubs:'Noch keine Einsendungen.',
+    imgLoadErr:'Bild konnte nicht geladen werden.', dateLocale:'de-DE',
+    aiDefault:function(n){ return `Ordne die ${n} Items nach deiner persönlichen Einschätzung ein – sie erscheinen einzeln und du weißt nicht, was noch kommt!`; },
+    aiDefaultImg:function(n){ return `Ranke die ${n} Bilder nach deiner persönlichen Einschätzung – sie erscheinen einzeln nacheinander!`; }
+  },
+  en:{
+    back:'← Back', copy:'Copy', copied:'✓ Copied!', refresh:'↺ Refresh',
+    playAgain:'↺ Play again', submit:'Submit/share', anon:'Anonymous',
+    creating:'Creating …', loading:'Loading ranking …',
+    loadingGroup:'Loading group results …', errLoad:'❌ Could not be loaded.',
+    homeDesc:'What do you want to create?',
+    textTitle:'Text', textDesc:'Words or statements',
+    imgTitle:'Images', imgDesc:'Photos via drag & drop',
+    countDesc:'How many items?', count5Desc:'Compact & quick', count10Desc:'More comprehensive',
+    textCreatorTitle:'Text Ranking Creator', textCreatorDesc:'Enter items → AI writes intro → Share links.',
+    titleLabel:'Title / Question', titlePlaceholder:'e.g. Favourite pizza toppings ...',
+    itemsLabel:'Items', addItem:'+ Add item', createLinks:'Create links',
+    playLinkLabel:'🎮 Play link – send to players', groupLinkLabel:'👥 Group results – for you to review',
+    shareMyResult:'🏆 Share my result', seeAllResults:'👥 See all results',
+    shareResultDesc:'Send this link to your friends – they can see your ranking and play themselves.',
+    imgCreatorTitle:'Image Ranking Creator', imgCreatorDesc:'Images via drag & drop → Add labels → Share links.',
+    imgTitlePlaceholder:'e.g. Most beautiful travel destinations ...', imagesLabel:'Images', imgSlotLabel:'Image', imgLabelPlaceholder:'Label ...',
+    multiHint:'You can also drag or select several images at once – they will be placed automatically.',
+    tooManyFiles:function(n){ return `Only ${n} free slots – the remaining images were not added.`; },
+    adjustCrop:'Adjust image crop', cropTitle:'Choose crop',
+    cropHint:'Drag to move, use the slider to zoom – this is how the image will be shown later.',
+    cropReset:'Reset', cropCancel:'Cancel', cropApply:'Apply',
+    blindRanking:'Blind Ranking', items:'Items', images:'Images', startBtn:'Start now →',
+    currentItem:'Current item', lastItem:'Last item',
+    moreItems:function(n){ return n===1?'1 more item to come':`${n} more items to come`; },
+    whichPlace:'Which place?', free:'free',
+    lastImage:'Last image',
+    moreImages:function(n){ return n===1?'1 more to come':`${n} more to come`; },
+    done:'★ Completed', yourResult:'Your result',
+    submitShare:'Submit/share result', namePlaceholder:'Your name (optional)',
+    playYourself:'Play yourself →', copyLink:'Copy link',
+    loadingResult:'Loading result …', errResult:'❌ Result not found.',
+    groupTitle:'Group Results', aggregated:'Aggregated ranking',
+    submissions:'Submissions', mostChosen:'Most chosen #1',
+    allSubs:'All submissions', noSubs:'No submissions yet.',
+    imgLoadErr:'Image could not be loaded.', dateLocale:'en-GB',
+    aiDefault:function(n){ return `Rank the ${n} items according to your personal taste – they appear one at a time and you don't know what's coming next!`; },
+    aiDefaultImg:function(n){ return `Rank the ${n} images according to your personal taste – they appear one at a time!`; }
+  }
+};
+
+function t(key, arg){ 
+  const v = T[LANG][key]; 
+  return typeof v === 'function' ? v(arg) : v; 
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
+function fmtDate(ts){return new Date(ts).toLocaleDateString(t('dateLocale'),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+function compressImage(file){
+  return new Promise(resolve=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      if(!img.width||!img.height){resolve(null);return;}
+      try{
+        let w=img.width, h=img.height;
+        const MAX = 600; 
+        if(w>h){if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}}else{if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}}
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        let dataUrl=cv.toDataURL('image/jpeg', 0.6); 
+        resolve(dataUrl);
+      }catch(e){resolve(null);}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve(null);};
+    img.src=url;
+  });
+}
+
+function labelFromFilename(name){
+  if(!name) return '';
+  let base = name.replace(/\.[^./\\]+$/, ''); // Dateiendung entfernen
+  base = base.replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
+  if(!base) return '';
+  return base.charAt(0).toUpperCase() + base.slice(1);
+}
+
+function readImageAsset(file, maxDim){
+  return new Promise(resolve=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      if(!img.width||!img.height){resolve(null);return;}
+      try{
+        let w=img.width, h=img.height;
+        if(maxDim && Math.max(w,h)>maxDim){
+          if(w>h){h=Math.round(h*maxDim/w);w=maxDim;}else{w=Math.round(w*maxDim/h);h=maxDim;}
+        }
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        resolve({dataUrl:cv.toDataURL('image/jpeg',0.86), width:w, height:h});
+      }catch(e){resolve(null);}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve(null);};
+    img.src=url;
+  });
+}
+
+function dataURLtoBlob(dataurl) {
+  var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+      bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+  while(n--){ u8arr[n] = bstr.charCodeAt(n); }
+  return new Blob([u8arr], {type:mime});
+}
+
+function checkSupabase(errBox) {
+  if (!sb) {
+    errBox.textContent = '❌ Datenbank blockiert. Bitte Adblocker deaktivieren.';
+    errBox.style.display = 'block';
+    return false;
+  }
+  return true;
+}
+
+function copyBtn(el,text){
+  el.onclick=async()=>{
+    let ok=false;
+    if(navigator.clipboard && window.isSecureContext) {
+      try{ await navigator.clipboard.writeText(text); ok=true; }catch(e){}
+    }
+    if(!ok){
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+      }catch(e2){}
+    }
+    const origHtml = el.innerHTML;
+    el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> ${t('copied')}`;
+    el.classList.add('copied');
+    setTimeout(()=>{el.innerHTML=origHtml;el.classList.remove('copied');},2500);
+  };
+}
+
+function linkSection(lbl,url,extra){
+  const id='ls'+Math.random().toString(36).slice(2);
+  setTimeout(()=>{
+    const btn=document.getElementById(id);
+    if(btn){
+      copyBtn(btn,url);
+      const disp=btn.previousElementSibling;
+      if(disp){
+        disp.title=t('copy');
+        disp.onclick=()=>btn.click();
+      }
+    }
+  },50);
+  return `<div class="link-section">${extra||''}<div class="lbl">${lbl}</div><div class="url-row"><div class="url-display">${esc(url)}</div><button class="copy-btn" id="${id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> <span>${t('copy')}</span></button></div></div>`;
+}
+
+// ── ROUTING & LANG ────────────────────────────────────────────────────
+let pageRerender = initHome;
+
+function initLangBar(){
+  const bar=document.getElementById('lang-bar');
+  if(!bar)return;
+  bar.querySelectorAll('.lb').forEach(b=>b.classList.remove('active'));
+  const active=bar.querySelector('#lb-'+LANG);
+  if(active)active.classList.add('active');
+  
+  document.getElementById('lb-de').onclick=()=>{ 
+    LANG='de'; 
+    try{ localStorage.setItem('blindranking-lang','de'); }catch(e){} 
+    document.getElementById('html-root').lang='de'; 
+    initLangBar(); pageRerender(); 
+  };
+  
+  document.getElementById('lb-en').onclick=()=>{ 
+    LANG='en'; 
+    try{ localStorage.setItem('blindranking-lang','en'); }catch(e){} 
+    document.getElementById('html-root').lang='en'; 
+    initLangBar(); pageRerender(); 
+  };
+}
+
+const P=new URLSearchParams(location.search);
+const rankingId=P.get('r');
+const resultsId=P.get('results');
+const resultId=P.get('result'); 
+
+if(rankingId) initGame(rankingId);
+else if(resultsId) initGroupResults(resultsId);
+else if(resultId) initPersonalResult(resultId);
+else initHome();
+
+initLangBar();
+
+// ════════════════════════════════════════════════════════════════════
+// HOME & MODE SELECTION
+// ════════════════════════════════════════════════════════════════════
+function initHome(){
+  pageRerender=initHome;
+  document.getElementById('app').innerHTML=`
+    <div class="brand"><span class="crown">🏆</span><h1>Blind-Ranking</h1></div>
+    <p class="desc">${t('homeDesc')}</p>
+    <div class="mode-grid">
+      <div class="mode-card" id="mt"><div class="mode-icon">🔤</div><div class="mode-title">${t('textTitle')}</div><div class="mode-desc">${t('textDesc')}</div></div>
+      <div class="mode-card" id="mi" style="border-color:var(--gold-border);background:var(--gold-bg);"><div class="mode-icon">🖼️</div><div class="mode-title">${t('imgTitle')}</div><div class="mode-desc">${t('imgDesc')}</div></div>
+    </div>`;
+  document.getElementById('mt').onclick=()=>chooseCount('text');
+  document.getElementById('mi').onclick=()=>chooseCount('image');
+}
+
+function chooseCount(type){
+  pageRerender=()=>chooseCount(type);
+  const lbl=type==='text'?t('textTitle')+'-Ranking':t('imgTitle')+'-Ranking';
+  document.getElementById('app').innerHTML=`
+    <button class="back-btn" id="back">${t('back')}</button>
+    <div class="brand"><span class="crown">🏆</span><h1>${lbl}</h1></div>
+    <p class="desc">${t('countDesc')}</p>
+    <div class="mode-grid">
+      <div class="mode-card" id="p5"><div class="mode-icon">5️⃣</div><div class="mode-title">5 ${t('items')}</div><div class="mode-desc">${t('count5Desc')}</div></div>
+      <div class="mode-card" id="p10"><div class="mode-icon">🔟</div><div class="mode-title">10 ${t('items')}</div><div class="mode-desc">${t('count10Desc')}</div></div>
+    </div>`;
+  document.getElementById('back').onclick=initHome;
+  document.getElementById('p5').onclick=()=>type==='text'?initTextCreator(5):initImageCreator(5);
+  document.getElementById('p10').onclick=()=>type==='text'?initTextCreator(10):initImageCreator(10);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// TEXT CREATOR
+// ════════════════════════════════════════════════════════════════════
+function initTextCreator(maxItems=5){
+  pageRerender=()=>initTextCreator(maxItems);
+  const app=document.getElementById('app');
+  const items=Array(maxItems).fill('');
+  
+  const linkIconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
+
+  app.innerHTML=`
+    <button class="back-btn" id="back">${t('back')}</button>
+    <div class="brand"><span class="crown">🏆</span><h1>${t('textCreatorTitle')}</h1></div>
+    <p class="desc">${t('textCreatorDesc')}</p>
+    <div class="field"><label>${t('titleLabel')}</label><input type="text" id="title" placeholder="${t('titlePlaceholder')}"/></div>
+    <div class="field">
+      <label>${t('itemsLabel')} <span id="count" style="opacity:.4">(${maxItems}/${maxItems})</span></label>
+      <div id="items-list"></div>
+      <button class="btn-sm" id="add-btn" style="margin-top:8px;">${t('addItem')}</button>
+    </div>
+    <hr class="divider">
+    <button class="btn-primary" id="gen-btn" disabled>${linkIconSvg} <span>${t('createLinks')}</span></button>
+    <div class="err-box" id="err-box"></div>
+    <div class="link-box" id="link-box"></div>`;
+  
+  document.getElementById('back').onclick=()=>chooseCount('text');
+
+  function renderItems(){
+    const list=document.getElementById('items-list');list.innerHTML='';
+    items.forEach((val,i)=>{
+      const row=document.createElement('div');row.className='item-row';
+      row.innerHTML=`<span class="num">${i+1}</span><input type="text" placeholder="${t('itemsLabel')} ${i+1}" value="${esc(val)}" data-idx="${i}" class="iinp">${items.length>2?`<button data-idx="${i}" class="rm-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>`:''}`;
+      list.appendChild(row);
+    });
+    document.getElementById('count').textContent=`(${items.length}/${maxItems})`;
+    document.getElementById('add-btn').style.display=items.length>=maxItems?'none':'';
+    list.querySelectorAll('.iinp').forEach(el=>el.addEventListener('input',e=>{items[+e.target.dataset.idx]=e.target.value;chk();}));
+    list.querySelectorAll('.rm-btn').forEach(el=>el.addEventListener('click',function() {items.splice(+this.dataset.idx,1);renderItems();chk();}));
+  }
+  
+  function chk(){
+    const tv=document.getElementById('title').value.trim();
+    document.getElementById('gen-btn').disabled=!(tv&&items.filter(s=>s.trim()).length>=2);
+  }
+  document.getElementById('title').addEventListener('input',chk);
+  document.getElementById('add-btn').addEventListener('click',()=>{if(items.length<maxItems){items.push('');renderItems();chk();}});
+
+  document.getElementById('gen-btn').addEventListener('click',async()=>{
+    const title=document.getElementById('title').value.trim();
+    const validItems=items.filter(s=>s.trim());
+    const btn=document.getElementById('gen-btn'),errBox=document.getElementById('err-box');
+    
+    if(!checkSupabase(errBox)) return;
+
+    btn.disabled=true;btn.innerHTML=`<span class="spinner"></span> <span>${t('creating')}</span>`;
+    errBox.style.display='none';
+    
+    try {
+      const { data: ranking, error } = await sb.from('rankings').insert({ title: title, type: 'text', language: LANG }).select().single();
+      if(error) throw error;
+
+      const dbItems = validItems.map((label, index) => ({ ranking_id: ranking.id, position: index + 1, label: label, image_url: null }));
+      const { error: itemError } = await sb.from('ranking_items').insert(dbItems);
+      if(itemError) throw itemError;
+
+      const base = location.origin + location.pathname;
+      const playLink = `${base}?r=${ranking.id}`;
+      const resultsLink = `${base}?results=${ranking.id}`;
+      const intro = t('aiDefault', validItems.length);
+
+      const linkBox = document.getElementById('link-box');
+      linkBox.innerHTML = `
+        ${linkSection(t('playLinkLabel'), playLink, `<div style="font-family:'Archivo',sans-serif;font-size:19px;font-weight:800;letter-spacing:-0.02em;color:var(--text);margin-bottom:4px">${esc(title)}</div><div style="font-size:13px;color:var(--text2);margin-bottom:.75rem">${intro}</div>`)}
+        <div class="sep"></div>
+        ${linkSection(t('groupLinkLabel'), resultsLink)}
+      `;
+      linkBox.style.display='block';
+
+    } catch(e) {
+      errBox.textContent='❌ '+e.message; errBox.style.display='block';
+    } finally {
+      btn.disabled=false; btn.innerHTML=`${linkIconSvg} <span>${t('createLinks')}</span>`;
+    }
+  });
+  renderItems();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// IMAGE CREATOR
+// ════════════════════════════════════════════════════════════════════
+function initImageCreator(slotCount=5){
+  pageRerender=()=>initImageCreator(slotCount);
+  const app=document.getElementById('app');
+  const slots=Array(slotCount).fill(null).map(()=>({img:null, label:'', fileBlob:null, origSrc:null, origW:0, origH:0, cropped:false, cropState:null}));
+  
+  const linkIconSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>`;
+  const cropIconSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"></path><path d="M18 22V8a2 2 0 0 0-2-2H2"></path></svg>`;
+
+  app.innerHTML=`
+    <button class="back-btn" id="back">${t('back')}</button>
+    <div class="brand"><span class="crown">🏆</span><h1>${t('imgCreatorTitle')}</h1></div>
+    <p class="desc">${t('imgCreatorDesc')}</p>
+    <div class="field"><label>${t('titleLabel')}</label><input type="text" id="title" placeholder="${t('imgTitlePlaceholder')}"/></div>
+    <div class="field">
+      <label>${t('imagesLabel')} <span id="slot-count" style="opacity:.4">(0/${slotCount})</span></label>
+      <div class="multi-hint">${t('multiHint')}</div>
+      <div class="slots-grid" id="slots-grid"></div>
+    </div>
+    <hr class="divider">
+    <button class="btn-primary" id="gen-btn" disabled>${linkIconSvg} <span>${t('createLinks')}</span></button>
+    <div class="err-box" id="err-box"></div>
+    <div class="link-box" id="link-box"></div>`;
+    
+  document.getElementById('back').onclick=()=>chooseCount('image');
+
+  function renderSlots(){
+    const grid=document.getElementById('slots-grid');grid.innerHTML='';
+    slots.forEach((s,i)=>{
+      const div=document.createElement('div');div.className='slot'+(s.img?' filled':'');
+      if(s.img){
+        div.innerHTML=`<img src="${s.img}" alt="${t('imgSlotLabel')} ${i+1}"><div class="label-overlay"><input type="text" class="label-input" placeholder="${t('imgLabelPlaceholder')}" value="${esc(s.label)}" data-lidx="${i}"></div><button class="crop-btn" data-cidx="${i}" title="${t('adjustCrop')}">${cropIconSvg}</button><button class="remove-btn" data-ridx="${i}">✕</button>${s.cropped?`<div class="crop-badge" title="${t('adjustCrop')}">✓</div>`:''}`;
+      } else {
+        div.innerHTML=`<div class="plus">＋</div><div class="slot-num">${t('imgSlotLabel')} ${i+1}</div>`;
+        div.addEventListener('click',()=>openPicker());
+      }
+      grid.appendChild(div);
+    });
+    grid.querySelectorAll('.label-input').forEach(el=>el.addEventListener('input',e=>{slots[+e.target.dataset.lidx].label=e.target.value;}));
+    grid.querySelectorAll('.crop-btn').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();openCropEditor(+el.dataset.cidx);}));
+    grid.querySelectorAll('.remove-btn').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();const s=slots[+el.dataset.ridx];s.img=null;s.fileBlob=null;s.label='';s.origSrc=null;s.origW=0;s.origH=0;s.cropped=false;s.cropState=null;renderSlots();chk();}));
+    document.getElementById('slot-count').textContent=`(${slots.filter(s=>s.img).length}/${slotCount})`;
+  }
+
+  // Beliebig viele Bilder auf einmal entgegennehmen und automatisch auf die freien Plätze verteilen.
+  // Die Beschriftung wird dabei standardmäßig aus dem Dateinamen übernommen.
+  async function handleFiles(fileList){
+    const files=Array.from(fileList||[]).filter(f=>f.type.startsWith('image/'));
+    if(!files.length) return;
+    const emptyIdxs=slots.map((s,i)=>s.img?null:i).filter(i=>i!==null);
+    const toAssign=files.slice(0, emptyIdxs.length);
+    for(let k=0;k<toAssign.length;k++){
+      const idx=emptyIdxs[k], f=toAssign[k];
+      const [compressed, orig]=await Promise.all([compressImage(f), readImageAsset(f,1400)]);
+      if(compressed){
+        slots[idx].img=compressed;
+        slots[idx].fileBlob=dataURLtoBlob(compressed);
+        slots[idx].label=labelFromFilename(f.name);
+        slots[idx].cropped=false;
+        slots[idx].cropState=null;
+      }
+      if(orig){
+        slots[idx].origSrc=orig.dataUrl;
+        slots[idx].origW=orig.width;
+        slots[idx].origH=orig.height;
+      }
+    }
+    const errBox=document.getElementById('err-box');
+    if(files.length>toAssign.length){
+      errBox.style.display='block';
+      errBox.textContent=t('tooManyFiles', emptyIdxs.length);
+    } else if(errBox){
+      errBox.style.display='none';
+    }
+    renderSlots();
+    chk();
+  }
+
+  // Interaktiver Bildausschnitt: Ziehen zum Verschieben, Regler zum Zoomen.
+  // Ergebnis wird als quadratischer Ausschnitt gerendert – das entspricht dann exakt
+  // dem, was später im Ranking (Vorschau & Übersichten) sichtbar ist.
+  function openCropEditor(idx){
+    const slot=slots[idx];
+    if(!slot||!slot.origSrc) return;
+    const nw=slot.origW, nh=slot.origH;
+    const S=300;
+    const baseScale=S/Math.min(nw,nh);
+    const minScale=baseScale, maxScale=baseScale*3.5;
+    let scale = slot.cropState ? slot.cropState.scale : baseScale;
+    let tx = slot.cropState ? slot.cropState.tx : (S-nw*baseScale)/2;
+    let ty = slot.cropState ? slot.cropState.ty : (S-nh*baseScale)/2;
+
+    const overlay=document.createElement('div');
+    overlay.className='crop-overlay';
+    overlay.innerHTML=`
+      <div class="crop-modal">
+        <h3>${t('cropTitle')}</h3>
+        <div class="crop-hint">${t('cropHint')}</div>
+        <div class="crop-viewport" id="cv"><img id="cv-img" src="${slot.origSrc}" draggable="false"></div>
+        <div class="crop-zoom-row">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="range" id="cv-zoom" min="0" max="100" value="0">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line><line x1="11" y1="8" x2="11" y2="14"></line></svg>
+        </div>
+        <div class="crop-btns">
+          <button type="button" class="cb-reset">${t('cropReset')}</button>
+          <button type="button" class="cb-cancel">${t('cropCancel')}</button>
+          <button type="button" class="cb-apply">${t('cropApply')}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const vp=overlay.querySelector('#cv');
+    const imgEl=overlay.querySelector('#cv-img');
+    const zoomEl=overlay.querySelector('#cv-zoom');
+
+    const zoomPctFromScale=s=> maxScale>minScale ? Math.round((s-minScale)/(maxScale-minScale)*100) : 0;
+    const scaleFromZoomPct=p=> minScale + (maxScale-minScale)*(p/100);
+
+    function clamp(){
+      const w=nw*scale, h=nh*scale;
+      tx=Math.min(0, Math.max(S-w, tx));
+      ty=Math.min(0, Math.max(S-h, ty));
+    }
+    function applyTransform(){
+      imgEl.style.width=(nw*scale)+'px';
+      imgEl.style.height=(nh*scale)+'px';
+      imgEl.style.transform=`translate(${tx}px,${ty}px)`;
+    }
+    clamp(); applyTransform();
+    zoomEl.value=zoomPctFromScale(scale);
+
+    zoomEl.addEventListener('input', ()=>{
+      const oldScale=scale;
+      const cx=(S/2-tx)/oldScale, cy=(S/2-ty)/oldScale;
+      scale=scaleFromZoomPct(+zoomEl.value);
+      tx=S/2-cx*scale; ty=S/2-cy*scale;
+      clamp(); applyTransform();
+    });
+
+    let dragging=false, startX=0, startY=0, startTx=0, startTy=0;
+    vp.addEventListener('pointerdown', e=>{
+      dragging=true; vp.classList.add('grabbing');
+      try{vp.setPointerCapture(e.pointerId);}catch(err){}
+      startX=e.clientX; startY=e.clientY; startTx=tx; startTy=ty;
+    });
+    vp.addEventListener('pointermove', e=>{
+      if(!dragging) return;
+      tx=startTx+(e.clientX-startX); ty=startTy+(e.clientY-startY);
+      clamp(); applyTransform();
+    });
+    function endDrag(){ dragging=false; vp.classList.remove('grabbing'); }
+    vp.addEventListener('pointerup', endDrag);
+    vp.addEventListener('pointercancel', endDrag);
+    vp.addEventListener('pointerleave', ()=>{ if(dragging) endDrag(); });
+
+    function close(){ overlay.remove(); }
+    overlay.addEventListener('click', e=>{ if(e.target===overlay) close(); });
+    overlay.querySelector('.cb-cancel').addEventListener('click', close);
+    overlay.querySelector('.cb-reset').addEventListener('click', ()=>{
+      scale=baseScale; tx=(S-nw*baseScale)/2; ty=(S-nh*baseScale)/2;
+      clamp(); applyTransform(); zoomEl.value=zoomPctFromScale(scale);
+    });
+    overlay.querySelector('.cb-apply').addEventListener('click', ()=>{
+      const OUT=640;
+      const sSize=S/scale, sx=-tx/scale, sy=-ty/scale;
+      const cv=document.createElement('canvas'); cv.width=OUT; cv.height=OUT;
+      const ctx=cv.getContext('2d');
+      const srcImg=new Image();
+      srcImg.onload=()=>{
+        ctx.drawImage(srcImg, sx, sy, sSize, sSize, 0, 0, OUT, OUT);
+        const dataUrl=cv.toDataURL('image/jpeg',0.82);
+        slot.img=dataUrl;
+        slot.fileBlob=dataURLtoBlob(dataUrl);
+        slot.cropped=true;
+        slot.cropState={scale,tx,ty};
+        close();
+        renderSlots();
+      };
+      srcImg.src=slot.origSrc;
+    });
+  }
+
+  function openPicker(){
+    const inp=document.createElement('input');
+    inp.type='file';inp.accept='image/*';inp.multiple=true;inp.style.cssText='position:fixed;top:-9999px;opacity:0';
+    document.body.appendChild(inp);
+    inp.onchange=async()=>{
+      const files=inp.files;
+      try{document.body.removeChild(inp);}catch(e){}
+      await handleFiles(files);
+    };
+    setTimeout(()=>inp.click(),10);
+  }
+
+  const gridEl=document.getElementById('slots-grid');
+  gridEl.addEventListener('dragover', e=>{ e.preventDefault(); gridEl.classList.add('drag-over'); });
+  gridEl.addEventListener('dragleave', e=>{ if(!gridEl.contains(e.relatedTarget)) gridEl.classList.remove('drag-over'); });
+  gridEl.addEventListener('drop', async e=>{
+    e.preventDefault();
+    gridEl.classList.remove('drag-over');
+    await handleFiles(e.dataTransfer.files);
+  });
+
+  function chk(){
+    const tv=document.getElementById('title').value.trim();
+    document.getElementById('gen-btn').disabled=!(tv&&slots.filter(s=>s.img).length>=2);
+  }
+  document.getElementById('title').addEventListener('input',chk);
+
+  document.getElementById('gen-btn').addEventListener('click',async()=>{
+    const title=document.getElementById('title').value.trim();
+    const filledItems=slots.filter(s=>s.img);
+    const btn=document.getElementById('gen-btn'), errBox=document.getElementById('err-box');
+    
+    if(!checkSupabase(errBox)) return;
+
+    btn.disabled=true;btn.innerHTML=`<span class="spinner"></span> <span>${t('creating')}</span>`;
+    errBox.style.display='none';
+    
+    try{
+      const { data: ranking, error } = await sb.from('rankings').insert({ title: title, type: 'image', language: LANG }).select().single();
+      if(error) throw error;
+
+      const dbItems = [];
+      for(let i=0; i<filledItems.length; i++){
+        const item = filledItems[i];
+        const randomString = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        const fileName = randomString + '.jpg';
+        
+        const { error: uploadErr } = await sb.storage.from('ranking-images').upload(fileName, item.fileBlob);
+        if(uploadErr) throw uploadErr;
+        
+        const { data: urlData } = sb.storage.from('ranking-images').getPublicUrl(fileName);
+        dbItems.push({ ranking_id: ranking.id, position: i + 1, label: item.label.trim(), image_url: urlData.publicUrl });
+      }
+
+      const { error: itemError } = await sb.from('ranking_items').insert(dbItems);
+      if(itemError) throw itemError;
+
+      const base = location.origin + location.pathname;
+      const playLink = `${base}?r=${ranking.id}`;
+      const resultsLink = `${base}?results=${ranking.id}`;
+      const intro = t('aiDefaultImg', filledItems.length);
+
+      const linkBox = document.getElementById('link-box');
+      linkBox.innerHTML = `
+        ${linkSection(t('playLinkLabel'), playLink, `<div style="font-family:'Archivo',sans-serif;font-size:19px;font-weight:800;letter-spacing:-0.02em;color:var(--text);margin-bottom:4px">${esc(title)}</div><div style="font-size:13px;color:var(--text2);margin-bottom:.75rem">${intro}</div>`)}
+        <div class="sep"></div>
+        ${linkSection(t('groupLinkLabel'), resultsLink)}
+      `;
+      linkBox.style.display='block';
+
+    }catch(e){
+      errBox.textContent='❌ '+e.message; errBox.style.display='block';
+    }finally{
+      btn.disabled=false; btn.innerHTML=`${linkIconSvg} <span>${t('createLinks')}</span>`;
+    }
+  });
+  renderSlots();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// GAME LOOP
+// ════════════════════════════════════════════════════════════════════
+async function initGame(id){
+  const app=document.getElementById('app');
+  if(!sb) {
+    app.innerHTML=`<div style="padding:2rem;text-align:center;color:#a8462d">❌ Datenbank blockiert. Bitte Adblocker deaktivieren.</div>`;
+    return;
+  }
+  
+  app.innerHTML=`<div class="loading-screen"><span class="spinner spinner-light sp"></span><p>${t('loading')}</p></div>`;
+  
+  try {
+    const { data: ranking, error: rErr } = await sb.from('rankings').select('*').eq('id', id).single();
+    if(rErr) throw rErr;
+    if(ranking.language) LANG = ranking.language;
+
+    const { data: items, error: iErr } = await sb.from('ranking_items').select('*').eq('ranking_id', id).order('position');
+    if(iErr) throw iErr;
+
+    playGame(ranking, items);
+  } catch(e) {
+    app.innerHTML=`<p style="color:var(--text2);padding:1rem">${t('errLoad')}</p>`;
+  }
+}
+
+function playGame(ranking, items){
+  const app=document.getElementById('app');
+  const introText = ranking.type === 'text' ? t('aiDefault', items.length) : t('aiDefaultImg', items.length);
+  const st = { view:'start', q: shuffle(items), i: 0, sl: {}, tot: items.length };
+  
+  function render(){ if(st.view==='start') rStart(); else if(st.view==='rank') rRank(); else rResult(); }
+  
+  function rStart(){
+    app.innerHTML=`<div class="brand" style="margin-bottom:.4rem"><span class="crown">🏆</span><h1>${esc(ranking.title)}</h1></div><p class="sub">${t('blindRanking')} · ${st.tot} ${ranking.type==='text'?t('items'):t('images')}</p><div class="intro-box">${introText}</div><button class="btn-primary" id="sb">${t('startBtn')}</button>`;
+    document.getElementById('sb').onclick=()=>{st.view='rank';render();};
+  }
+  
+  function rRank(){
+    const cur=st.q[st.i], rem=st.tot-st.i-1, pct=Math.round((st.i/st.tot)*100);
+    const taken=Object.keys(st.sl).map(Number).sort((a,b)=>a-b);
+    
+    let displayArea = '';
+    if(ranking.type === 'text') {
+      displayArea = `<div class="ic fi"><div class="lb">${t('currentItem')}</div><div class="nm">${esc(cur.label)}</div><div class="ht">${rem===0?t('lastItem'):t('moreItems',rem)}</div></div>`;
+    } else {
+      displayArea = `<div class="img-card fi"><div class="img-wrap"><img src="${cur.image_url}" alt=""></div>${cur.label?`<div class="img-label">${esc(cur.label)}</div>`:''}<div class="img-hint">${rem===0?t('lastImage'):t('moreImages',rem)}</div></div>`;
+    }
+
+    let gridArea = '';
+    if(ranking.type === 'text'){
+      gridArea = `<div class="sg" id="sg"></div>${taken.length>0?'<div style="padding-top:1rem;border-top:1px solid var(--line)"><div class="hi">'+taken.map(r=>'<strong>#'+r+'</strong> '+esc(st.sl[r].label)).join(' · ')+'</div></div>':''}`;
+    } else {
+      gridArea = `<div class="rank-row" id="rr"></div>${taken.length>0?'<div class="placed-list" id="pl"></div>':''}`;
+    }
+
+    app.innerHTML=`<div class="pw"><div class="pb"><div class="pf" style="width:${pct}%"></div></div><span class="pl">${st.i+1}/${st.tot}</span></div>${displayArea}<div class="sl">${t('whichPlace')}</div>${gridArea}`;
+
+    if(ranking.type === 'text'){
+      const g=document.getElementById('sg');
+      for(let r=1;r<=st.tot;r++){
+        const tk=st.sl[r]!==undefined, el=document.createElement('div');
+        el.className='s'+(tk?' tk':'');
+        el.innerHTML=tk?`<div class="rk">${r}</div><div class="sn" title="${esc(st.sl[r].label)}">${esc(st.sl[r].label)}</div>`:`<div class="rk">${r}</div><div class="fr">${t('free')}</div>`;
+        if(!tk) el.onclick=()=>place(cur,r);
+        g.appendChild(el);
+      }
+    } else {
+      const row=document.getElementById('rr');
+      for(let r=1;r<=st.tot;r++){
+        const tk=st.sl[r]!==undefined, btn=document.createElement('div');
+        btn.className='rb'+(tk?' taken':'');
+        btn.innerHTML=tk?`<img class="rb-thumb" src="${st.sl[r].image_url}" alt=""><div class="rb-num">${r}</div>`:`<div class="rb-num">${r}</div><div class="rb-free">${t('free')}</div>`;
+        if(!tk) btn.onclick=()=>place(cur,r);
+        row.appendChild(btn);
+      }
+      const pl=document.getElementById('pl');
+      if(pl) taken.forEach(r=>{
+        const row=document.createElement('div'); row.className='placed-row';
+        const stLabel = st.sl[r].label ? st.sl[r].label : '–';
+        row.innerHTML=`<span class="pr-num">#${r}</span><img src="${st.sl[r].image_url}" alt=""><span>${esc(stLabel)}</span>`;
+        pl.appendChild(row);
+      });
+    }
+  }
+  
+  function place(item,rank){ st.sl[rank]=item; st.i++; if(st.i>=st.tot) st.view='result'; render(); }
+  
+  function rResult(){
+    const ordered = [];
+    for(let r=1; r<=st.tot; r++) ordered.push(st.sl[r]);
+
+    const mc={0:'m1',1:'m2',2:'m3'};
+    const rows = ordered.map((item, i)=>{
+      const imgHTML = item.image_url ? `<img class="res-img" src="${item.image_url}" alt="">` : '';
+      const lbl = item.label ? item.label : `${t('imgSlotLabel')} ${i+1}`;
+      return `<div class="res-row${i===0?' top1':''}"><div class="medal-wrap ${mc[i]||'mn'}">${i+1}</div>${imgHTML}<span style="font-size:14px;color:var(--text)">${esc(lbl)}</span></div>`;
+    }).join('');
+
+    app.innerHTML=`
+      <span class="tg">★ ${t('done').replace('★ ','')}</span>
+      <div class="brand" style="margin-bottom:.3rem"><span class="crown">🏆</span><h1>${esc(ranking.title)}</h1></div>
+      <p class="sub" style="margin-bottom:1.25rem">${t('yourResult')}</p>
+      <div class="result-grid">${rows}</div>
+      <div class="submit-box" id="submit-box">
+        <div class="sb-title">${t('submitShare')}</div>
+        <div class="submit-row">
+          <input type="text" id="player-name" placeholder="${t('namePlaceholder')}">
+          <button class="btn-primary" id="submit-btn">${t('submit')}</button>
+        </div>
+      </div>
+      <div class="br"><button id="rb">${t('playAgain')}</button></div>`;
+
+    document.getElementById('rb').onclick=()=>{st.q=shuffle(items); st.i=0; st.sl={}; st.view='start'; render();};
+
+    document.getElementById('submit-btn').addEventListener('click',async()=>{
+      const name = document.getElementById('player-name').value.trim() || t('anon');
+      const btn = document.getElementById('submit-btn');
+      btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+      
+      try {
+        const { data: submission, error: subErr } = await sb.from('submissions').insert({ ranking_id: ranking.id, player_name: name }).select().single();
+        if(subErr) throw subErr;
+
+        const subItems = ordered.map((item, index) => ({ submission_id: submission.id, item_label: item.label, rank_position: index + 1, image_url: item.image_url }));
+        const { error: itemErr } = await sb.from('submission_items').insert(subItems);
+        if(itemErr) throw itemErr;
+
+        const personalURL = `${location.origin}${location.pathname}?result=${submission.id}`;
+        const groupURL = `${location.origin}${location.pathname}?results=${ranking.id}`;
+        
+        document.getElementById('submit-box').outerHTML=`
+          <div class="link-box" style="display:block" id="share-links">
+            ${linkSection(t('shareMyResult'), personalURL, `<div style="font-size:13px;color:var(--text2);margin-bottom:.75rem">${t('shareResultDesc')}</div>`)}
+            <div class="sep"></div>
+            ${linkSection(t('seeAllResults'), groupURL)}
+          </div>`;
+          
+      } catch(e) {
+        btn.disabled=false; btn.innerHTML=t('submit'); alert(e.message);
+      }
+    });
+  }
+  
+  pageRerender=render;
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PERSONAL RESULT (Einzelnes Ergebnis anzeigen)
+// ════════════════════════════════════════════════════════════════════
+function initPersonalResult(id){
+  pageRerender=()=>initPersonalResult(id);
+  const app=document.getElementById('app');
+  if(!sb) {
+    app.innerHTML=`<div style="padding:2rem;text-align:center;color:#a8462d">❌ Datenbank blockiert. Bitte Adblocker deaktivieren.</div>`;
+    return;
+  }
+  
+  app.innerHTML=`<div class="loading-screen"><span class="spinner spinner-light sp"></span><p>${t('loadingResult')}</p></div>`;
+  
+  async function load() {
+    try {
+      const { data: sub, error: subErr } = await sb
+        .from('submissions')
+        .select('player_name, created_at, ranking_id, submission_items(item_label, rank_position, image_url)')
+        .eq('id', id)
+        .single();
+        
+      if(subErr) throw subErr;
+
+      const { data: rank, error: rankErr } = await sb
+        .from('rankings')
+        .select('title, language')
+        .eq('id', sub.ranking_id)
+        .single();
+        
+      if(rankErr) throw rankErr;
+
+      if(rank.language) LANG = rank.language;
+
+      const items = sub.submission_items.sort((a,b)=>a.rank_position - b.rank_position);
+      const mc={0:'m1',1:'m2',2:'m3'};
+      
+      const rows = items.map((item, i)=>{
+        const imgHTML = item.image_url ? `<img class="res-img" src="${item.image_url}" alt="">` : '';
+        const lbl = item.item_label ? item.item_label : `${t('imgSlotLabel')} ${i+1}`;
+        return `<div class="res-row${i===0?' top1':''}"><div class="medal-wrap ${mc[i]||'mn'}">${i+1}</div>${imgHTML}<span style="font-size:14px;color:var(--text)">${esc(lbl)}</span></div>`;
+      }).join('');
+
+      const playURL = `${location.origin}${location.pathname}?r=${sub.ranking_id}`;
+
+      app.innerHTML=`
+        <div class="result-card">
+          <div class="result-card-header">
+            <div class="rc-name">🏆 ${esc(sub.player_name||t('anon'))}</div>
+            <div class="rc-title">${esc(rank.title)}</div>
+          </div>
+          <div class="result-card-body">
+            <div class="result-grid" style="margin-bottom:1rem">${rows}</div>
+            <div style="font-size:11px;color:var(--text3)">${fmtDate(sub.created_at)}</div>
+          </div>
+        </div>
+        <div class="br" style="margin-top:1.25rem">
+          <button class="btn-primary" id="play-btn">${t('playYourself')}</button>
+          <button id="copy-url" class="copy-btn" style="width:auto; background:var(--surface2)!important; color:var(--text)!important; border:1px solid var(--line2)!important;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> <span>${t('copyLink')}</span></button>
+        </div>`;
+      
+      document.getElementById('play-btn').onclick=()=>location.href=playURL;
+      copyBtn(document.getElementById('copy-url'), location.href);
+
+    } catch(e) {
+      app.innerHTML=`<p style="color:var(--text2);padding:1rem">${t('errResult')}</p>`;
+    }
+  }
+  load();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// GROUP RESULTS
+// ════════════════════════════════════════════════════════════════════
+function initGroupResults(id){
+  pageRerender=()=>initGroupResults(id);
+  const app=document.getElementById('app');
+  if(!sb) {
+    app.innerHTML=`<div style="padding:2rem;text-align:center;color:#a8462d">❌ Datenbank blockiert. Bitte Adblocker deaktivieren.</div>`;
+    return;
+  }
+  
+  async function load(){
+    app.innerHTML=`<div class="loading-screen"><span class="spinner spinner-light sp"></span><p>${t('loadingGroup')}</p></div>`;
+    
+    try {
+      const { data: ranking } = await sb.from('rankings').select('*').eq('id', id).single();
+      if(ranking && ranking.language) LANG = ranking.language;
+
+      const { data: submissions, error } = await sb.from('submissions').select(`id, player_name, created_at, submission_items(item_label, rank_position, image_url)`).eq('ranking_id', id).order('created_at', { ascending: false });
+      if(error) throw error;
+
+      if(submissions.length === 0){
+        app.innerHTML=`<div class="brand"><span class="crown">🏆</span><h1>${t('groupTitle')}</h1></div><p style="color:var(--text2);font-size:14px;margin-top:1rem">${t('noSubs')}</p><div class="br" style="margin-top:1.5rem"><button id="ref">${t('refresh')}</button></div>`;
+        document.getElementById('ref').onclick=load; return;
+      }
+
+      const itemStats = {};
+      submissions.forEach(sub => {
+        sub.submission_items.forEach(item => {
+          const key = item.item_label || item.image_url || 'Item';
+          if(!itemStats[key]) itemStats[key] = { label: item.item_label, img: item.image_url, total: 0, count: 0 };
+          itemStats[key].total += item.rank_position;
+          itemStats[key].count++;
+        });
+      });
+
+      const agg = Object.values(itemStats).map(v => ({ label: v.label, img: v.img, avg: v.total / v.count, count: v.count })).sort((a,b) => a.avg - b.avg);
+
+      const aggHTML = agg.map((item, i) => {
+        const itemLabel = item.label ? item.label : `${t('imgSlotLabel')} ${i+1}`;
+        const imgHtml = item.img ? `<img class="agg-img" src="${item.img}">` : '';
+        return `
+        <div class="agg-row">
+          <div class="agg-rank">${i+1}</div>
+          ${imgHtml}
+          <div class="agg-label">${esc(itemLabel)}</div>
+          <div class="agg-score">Ø ${item.avg.toFixed(1)}</div>
+        </div>`;
+      }).join('');
+
+      const subsHTML = submissions.map(sub => `
+        <div class="group-submission">
+          <div class="gs-name">👤 ${esc(sub.player_name || t('anon'))} <span style="font-size:11px;color:var(--text3);font-weight:400">${fmtDate(sub.created_at)}</span></div>
+          <div class="gs-items">
+            ${sub.submission_items.sort((a,b)=>a.rank_position - b.rank_position).map((item, i) => {
+              const itemLbl = item.item_label ? item.item_label : `${t('imgSlotLabel')} ${item.rank_position}`;
+              return `<span class="gs-item"><span class="gs-rank">#${item.rank_position}</span> ${esc(itemLbl)}</span>`;
+            }).join('')}
+          </div>
+        </div>`).join('');
+
+      const topLabel = agg[0] ? agg[0].label : t('imgSlotLabel');
+
+      app.innerHTML=`
+        <div class="brand" style="margin-bottom:.3rem"><span class="crown">🏆</span><h1>${ranking ? esc(ranking.title) : t('groupTitle')}</h1></div>
+        <p class="sub" style="margin-bottom:1.25rem">${t('aggregated')}</p>
+        <div class="stat-row">
+          <div class="stat-box"><div class="stat-num">${submissions.length}</div><div class="stat-lbl">${t('submissions')}</div></div>
+          <div class="stat-box"><div class="stat-num" style="font-size:18px">${esc(topLabel||'—').substring(0,14)}</div><div class="stat-lbl">${t('mostChosen')}</div></div>
+        </div>
+        <div style="margin-bottom:1.5rem">${aggHTML}</div>
+        <div class="divider"></div>
+        <p class="sub" style="margin-bottom:1rem">${t('allSubs')}</p>
+        ${subsHTML}
+        <div class="br" style="margin-top:1.5rem"><button id="ref">${t('refresh')}</button></div>`;
+      
+      document.getElementById('ref').onclick=load;
+
+    } catch(e) {
+      app.innerHTML=`<p style="color:var(--text2);padding:1rem">${t('errLoad')}</p>`;
+    }
+  }
+  load();
+}
+</script>
+</body>
+</html>
